@@ -4,7 +4,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { MdClose, MdSettings } from "react-icons/md";
 import { BetaMark } from "@/components/BetaMark";
 import { Tooltip } from "@/components/Tooltip";
-import { EyeOffIcon, FocusIcon, FullscreenExitIcon, FullscreenIcon, HyperfocusIcon } from "@/components/icons";
+import { EyeOffIcon, FocusIcon, FullscreenExitIcon, FullscreenIcon, HyperfocusIcon, PipIcon } from "@/components/icons";
 import {
   MEDIA_KINDS,
   canUseTool,
@@ -12,6 +12,7 @@ import {
   toolMediaKey,
   useRoomToolsSelector,
   type DrawTool,
+  type SheetTool,
   type RoomToolsState,
   type TextTool,
 } from "@/lib/roomTools";
@@ -19,7 +20,10 @@ import { useT } from "@/lib/useI18n";
 import { RoomToolsViewer } from "./AnnotationLayer";
 import { ReactionButton, ReactionFloats } from "./ReactionLayer";
 import { TOOL_ICONS } from "./toolIcons";
+import { DocView } from "./DocView";
+import { SheetView } from "./SheetView";
 import { TextToolView, WhiteboardView } from "./ToolViews";
+import { openCanvasPip, toolDrawer, useCanvasPipSupported } from "./canvasPip";
 
 // The whiteboard, the notepad and the code editor as media: a tile in the
 // room's grid like a shared screen or a YouTube video, with the same bar on
@@ -40,7 +44,7 @@ export function ToolMediaTile({
   onLeave,
   interactive = true,
 }: {
-  tool: DrawTool | TextTool;
+  tool: DrawTool | TextTool | SheetTool;
   selfUserId: string | null;
   isManager: boolean;
   fill?: boolean;
@@ -69,6 +73,27 @@ export function ToolMediaTile({
   // says the same — see its "tool-close").
   const canClose = canOpenTools && (isManager || (selfUserId !== null && tool.createdById === selfUserId));
   const mediaKey = toolMediaKey(tool.id);
+  // The browser's picture-in-picture (see ToolPip) — only to follow along,
+  // the tool is used here, in the room. Inside the site, the room's corner
+  // player (components/DockedPip) lists the tools too.
+  const pipSupported = useCanvasPipSupported();
+  const closePipRef = useRef<(() => void) | null>(null);
+  const [pipOpen, setPipOpen] = useState(false);
+
+  async function togglePip() {
+    if (closePipRef.current) return closePipRef.current();
+    const close = await openCanvasPip(toolDrawer(tool.id), {
+      onClose: () => {
+        closePipRef.current = null;
+        setPipOpen(false);
+      },
+    });
+    closePipRef.current = close;
+    setPipOpen(close !== null);
+  }
+
+  // Gone from the room (closed, or stepped out of): its picture goes too.
+  useEffect(() => () => closePipRef.current?.(), []);
 
   useEffect(() => {
     const onChange = () => setNativeFullscreen(document.fullscreenElement === boxRef.current);
@@ -94,6 +119,7 @@ export function ToolMediaTile({
     // what it is, not a second editor the size of a stamp. Two taps put it in
     // focus, where it works.
     return (
+      <>
       <div
         role="button"
         tabIndex={0}
@@ -128,10 +154,12 @@ export function ToolMediaTile({
           </button>
         )}
       </div>
+      </>
     );
   }
 
   return (
+    <>
     <div
       ref={boxRef}
       className={`flex flex-col overflow-hidden bg-zinc-950 ${
@@ -164,6 +192,19 @@ export function ToolMediaTile({
         </span>
         <span className="flex shrink-0 items-center gap-0.5 sm:gap-1">
           <ReactionButton mediaKey={mediaKey} />
+          {pipSupported && (
+            <Tooltip content={t("videoTile.pictureInPicture")}>
+              <button
+                type="button"
+                onClick={() => void togglePip()}
+                aria-pressed={pipOpen}
+                aria-label={t("videoTile.pictureInPicture")}
+                className={`rounded-full p-1.5 text-white transition ${pipOpen ? "bg-emerald-600 hover:bg-emerald-700" : "hover:bg-white/10"}`}
+              >
+                <PipIcon className="h-4 w-4" />
+              </button>
+            </Tooltip>
+          )}
           {isManager && (
             <Tooltip content={t("roomTools.settings")}>
               <button type="button" onClick={() => roomTools.show(tool.id)} aria-label={t("roomTools.settings")} className={button}>
@@ -243,7 +284,11 @@ export function ToolMediaTile({
         </span>
       </div>
       <div className="relative min-h-0 flex-1 bg-white p-1.5 sm:p-2 dark:bg-zinc-900">
-        {tool.kind === "notepad" || tool.kind === "code" ? (
+        {tool.kind === "sheet" ? (
+          <SheetView tool={tool} canUse={canUse} />
+        ) : tool.kind === "doc" ? (
+          <DocView tool={tool} canUse={canUse} />
+        ) : tool.kind === "notepad" || tool.kind === "code" ? (
           <TextToolView tool={tool as TextTool} selfUserId={selfUserId} isManager={isManager} canUse={canUse} />
         ) : (
           <WhiteboardView tool={tool as DrawTool} selfUserId={selfUserId} isManager={isManager} canUse={canUse} />
@@ -251,6 +296,7 @@ export function ToolMediaTile({
         <ReactionFloats mediaKey={mediaKey} />
       </div>
     </div>
+    </>
   );
 }
 
@@ -264,7 +310,7 @@ export function ToolMediaTileById({
 }: Omit<Parameters<typeof ToolMediaTile>[0], "tool"> & { toolId: string }) {
   const select = useCallback(
     (s: RoomToolsState) =>
-      s.tools.find((t): t is DrawTool | TextTool => t.id === toolId && MEDIA_KINDS.includes(t.kind)) ?? null,
+      s.tools.find((t): t is DrawTool | TextTool | SheetTool => t.id === toolId && MEDIA_KINDS.includes(t.kind)) ?? null,
     [toolId]
   );
   const tool = useRoomToolsSelector(select);
