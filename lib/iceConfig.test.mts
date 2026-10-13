@@ -43,7 +43,10 @@ for (const raw of [undefined, "", " ", ",", "turn:a.com,", " , turn:b.com"]) {
 async function loadModule(turnUrls: string | undefined, tag: string) {
   if (turnUrls === undefined) delete process.env.NEXT_PUBLIC_TURN_URLS;
   else process.env.NEXT_PUBLIC_TURN_URLS = turnUrls;
-  return import(`./iceConfig.ts?dyn=${tag}`);
+  const mod = await import(`./iceConfig.ts?dyn=${tag}`);
+  // Pro ("dedicated_turn"): every case below is about an account with TURN.
+  mod.setTurnAllowed(true);
+  return mod;
 }
 const cloudflare = { urls: ["turn:turn.cloudflare.com:3478"], username: "u", credential: "c" };
 
@@ -108,5 +111,13 @@ assert.deepEqual(allUrls(withOwn.iceConfigFor(false)), [
   "turn:vps.example.com:3478?transport=tcp",
 ]);
 setOwnTurnVariant(null);
+
+// Without Pro: STUN only, whatever is loaded, and relay can never be forced.
+const locked = await loadModule("turn:vps.example.com:3478", "locked");
+locked.setDynamicIceServers([cloudflare]);
+locked.setTurnAllowed(false);
+assert.deepEqual(allUrls(locked.iceConfigFor(true)), ["stun:stun.l.google.com:19302"]);
+assert.equal(locked.iceConfigFor(true).iceTransportPolicy, undefined);
+assert.equal(locked.isTurnConfigured(), false);
 
 console.log("iceConfig: ok");

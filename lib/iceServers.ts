@@ -1,5 +1,6 @@
 import { setDynamicIceServers, setOwnIceServers } from "./iceConfig";
 import { getSignalingHttpBase } from "./roomsApi";
+import { getAccountToken } from "./accountApi";
 
 // Fetches Cloudflare's TURN servers from the API (see the API's
 // cloudflareTurn.ts) and hands them to lib/iceConfig.ts, which puts them into
@@ -63,17 +64,31 @@ async function load() {
   const controller = new AbortController();
   const abort = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
+    // The account decides whether there is anything to get (see the API's
+    // "dedicated_turn"), so the request carries it.
+    const token = getAccountToken();
     const res = await fetch(`${getSignalingHttpBase()}/ice-servers`, {
       cache: "no-store",
       signal: controller.signal,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = (await res.json()) as {
       iceServers?: unknown;
       expiresAt?: unknown;
       disabled?: unknown;
+      locked?: unknown;
       own?: unknown;
     };
+    // Not on a plan with TURN: drop anything held from before (a lapsed
+    // subscription, a logout) and look again later.
+    if (body.locked === true) {
+      setDynamicIceServers([]);
+      setOwnIceServers([]);
+      ownRefreshAt = null;
+      schedule(RETRY_MS);
+      return;
+    }
     readOwn(body.own);
     // The admin switched Cloudflare's TURN off. Unlike every other empty
     // answer, this one means "stop using what you have" — see the API's GET

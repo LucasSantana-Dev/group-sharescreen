@@ -107,6 +107,7 @@ const FEATURE_LABELS: Partial<Record<Feature, string>> = {
   get room_theme_set() { return translate("pro.proPanel.changeTheThemeOfAnyRoom"); },
   get uncapped_relay() { return translate("pro.proPanel.noQualityLimitOnRelayedConnections"); },
   get force_relay() { return translate("pro.proPanel.hideYourIpFromEveryoneInA"); },
+  get dedicated_turn() { return translate("pro.proPanel.dedicatedTurn"); },
   get room_theme_gradient() { return translate("pro.proPanel.useAGradientInYourThemes"); },
   get clip_no_watermark() { return translate("pro.proPanel.clipWithoutWatermark"); },
   get call_transcript() { return translate("pro.proPanel.transcribeYourCalls"); },
@@ -126,6 +127,7 @@ const BROADCAST_FEATURES = new Set<Feature>([
   "bitrate_maximo",
   "uncapped_relay",
   "force_relay",
+  "dedicated_turn",
 ]);
 
 function periodEndLabel(timestamp: number): string {

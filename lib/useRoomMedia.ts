@@ -6,8 +6,9 @@ import { speakingDetector } from "./speakingDetector";
 import { hasFeature, type Feature } from "./entitlements";
 import { useAuth } from "./AuthContext";
 import { trackEvent } from "./analytics";
-import { iceConfigFor } from "./iceConfig";
-import { ensureIceServers } from "./iceServers";
+import { iceConfigFor, setTurnAllowed } from "./iceConfig";
+import { ensureIceServers, refreshIceServers } from "./iceServers";
+import { reportUnreachablePeer, TURN_UPSELL_DELAY_MS } from "./turnUpsell";
 import { watchTurnRelay } from "./turnRoute";
 import {
   captureNoiseSuppressedMic,
@@ -2416,6 +2417,11 @@ function useBroadcastChannel(
         });
       }
       setRecvConnectionStates((prev) => ({ ...prev, [originId]: pc.connectionState }));
+      // Never connected in time without TURN: the "Pro relays" notice (see
+      // lib/turnUpsell). A no-op for an account that has TURN.
+      setTimeout(() => {
+        if (recvPCs.current.get(peerId) === pc && pc.connectionState !== "connected") reportUnreachablePeer();
+      }, TURN_UPSELL_DELAY_MS);
       pc.ontrack = (e) => {
         // Smooth out network jitter for viewers with fluctuating or high-latency
         // connections (absorbs micro-bursts without causing frame freezes).
@@ -2504,6 +2510,7 @@ function useBroadcastChannel(
           closeRecvPC(peerId);
           requestReconnect(peerId);
         } else if (pc.connectionState === "failed") {
+          reportUnreachablePeer();
           recoverRecvPC();
         } else if (pc.connectionState === "disconnected") {
           // Don't tear down a viewer's tile over a brief blip — give it a
@@ -3297,6 +3304,15 @@ export function useRoomMedia(room: string) {
   // lib/turnRoute.ts). Unlike force_relay, a resolving account is not trusted
   // here — the cap is the safe default.
   const relayCapExempt = hasFeature("uncapped_relay", account?.features ?? []);
+  // Pro: any TURN at all (see lib/iceConfig's setTurnAllowed and the API's
+  // GET /ice-servers). On a change — login, upgrade, lapse — ask the API
+  // again, since what it answers depends on the account.
+  const turnAllowed = hasFeature("dedicated_turn", account?.features ?? []);
+  useEffect(() => {
+    if (resolvingAccount) return;
+    setTurnAllowed(turnAllowed);
+    refreshIceServers();
+  }, [turnAllowed, resolvingAccount]);
   useEffect(() => {
     setRelayCapExempt(relayCapExempt);
   }, [relayCapExempt]);

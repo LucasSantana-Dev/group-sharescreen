@@ -49,6 +49,24 @@ export const ICE_CONFIG: RTCConfiguration = {
 let dynamicServers: RTCIceServer[] = [];
 const listeners = new Set<() => void>();
 
+// Whether this account may relay at all (entitlement "dedicated_turn", Pro).
+// Starts false: the API only hands TURN credentials to Pro accounts, and the
+// build's static entry is held to the same rule here — it sits in the public
+// bundle, so this is the honest client's half, not the enforcement.
+let turnAllowed = false;
+
+/** Set from the account's features (see useRoomMedia). */
+export function setTurnAllowed(allowed: boolean) {
+  if (turnAllowed === allowed) return;
+  turnAllowed = allowed;
+  listeners.forEach((listener) => listener());
+}
+
+/** Whether the account may use TURN at all. */
+export function isTurnAllowed(): boolean {
+  return turnAllowed;
+}
+
 /** Replaces the TURN servers obtained at runtime. See lib/iceServers.ts. */
 export function setDynamicIceServers(servers: RTCIceServer[]) {
   dynamicServers = servers;
@@ -144,6 +162,7 @@ export function turnProvider(url: string | null | undefined): TurnProvider | nul
  * establish at all, so the UI must disable that toggle when this is false.
  */
 export function isTurnConfigured(): boolean {
+  if (!turnAllowed) return false;
   return TURN_CONFIGURED || dynamicServers.length > 0 || ownDynamicServers.length > 0;
 }
 
@@ -165,6 +184,7 @@ export function isTurnConfigured(): boolean {
  * exactly what "hide my IP from other participants" needs.
  */
 export function iceConfigFor(forceRelay: boolean): RTCConfiguration {
+  if (!turnAllowed) return { iceServers: [STUN_SERVER] };
   const own = ownTurnTcpOnly() ? tcpOnlyServers(ownServers()) : ownServers();
   const config: RTCConfiguration = {
     iceServers: [STUN_SERVER, ...dynamicServers, ...own],

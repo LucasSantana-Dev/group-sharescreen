@@ -44,6 +44,7 @@ export type Feature =
   | "room_theme_gradient"
   | "force_relay"
   | "uncapped_relay"
+  | "dedicated_turn"
   | "clip_no_watermark"
   | "call_transcript"
   | "live_translation"
@@ -76,6 +77,7 @@ export const FEATURE_TIERS: Record<Feature, FeatureTier> = {
   room_theme_gradient: "premium_max",
   force_relay: "pro_ultra",
   uncapped_relay: "pro_ultra",
+  dedicated_turn: "premium",
   clip_no_watermark: "premium_max",
   call_transcript: "premium_max",
   live_translation: "premium_max",

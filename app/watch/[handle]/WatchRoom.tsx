@@ -266,6 +266,7 @@ import { TIER_NAMES, tierIconId } from "@/lib/entitlements";
 import { useRecordingNotices } from "@/lib/recordingNotice";
 import { sendTileCommand } from "@/lib/tileCommands";
 import { getRoomProOffer } from "@/components/RoomProOffer";
+import TurnUpsellNotice from "@/components/TurnUpsellNotice";
 import { isAppShell } from "@/lib/desktop";
 import { getProfileSongAutoplay, setProfileSongAutoplay } from "@/lib/profileSong";
 import { useMediaQuery, SM_BREAKPOINT_QUERY, LG_BREAKPOINT_QUERY } from "@/lib/useMediaQuery";
@@ -9563,6 +9564,8 @@ function WatchRoomView({
           conta grátis" opens that one *over* this, and someone who backs out
           of registering should find the explanation still there instead of
           having silently spent it. */}
+      {/* "Assine o Pro" when a stream could not connect without TURN. */}
+      <TurnUpsellNotice />
       {adGate && adGateOpen && (
         <BroadcastAdGateModal gate={adGate} onClose={() => setDismissedGate(adGate)} />
       )}

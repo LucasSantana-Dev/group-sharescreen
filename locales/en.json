@@ -1,4 +1,9 @@
 {
+  "pro.proPanel.dedicatedTurn": "Dedicated servers so streams connect on any network",
+  "turnUpsell.title": "Is the stream laggy or not loading?",
+  "turnUpsell.body": "Get Pro and use our dedicated servers: they connect even when your network blocks direct connections.",
+  "turnUpsell.cta": "Get Pro",
+  "turnUpsell.dismiss": "Close",
   "admin.giftPanel.trialOnly": "Free trial only",
   "admin.giftPanel.trialOnlyHint": "Whoever redeems registers a card at Stripe and subscribes to the plan (monthly). The gift's days are free; billing starts after. Between 2 and 730 days.",
   "admin.giftPanel.trialBadge": "free trial",

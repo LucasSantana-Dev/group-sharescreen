@@ -1,4 +1,9 @@
 {
+  "pro.proPanel.dedicatedTurn": "Servidores dedicados para a transmissão conectar em qualquer rede",
+  "turnUpsell.title": "A transmissão está ruim ou não carrega?",
+  "turnUpsell.body": "Assine o Pro e use nossos servidores dedicados: eles conectam mesmo quando a sua rede bloqueia a conexão direta.",
+  "turnUpsell.cta": "Assinar o Pro",
+  "turnUpsell.dismiss": "Fechar",
   "admin.giftPanel.trialOnly": "Apenas período grátis",
   "admin.giftPanel.trialOnlyHint": "Quem resgatar cadastra o cartão na Stripe e assina o plano (mensal). Os dias do gift são grátis; depois começa a cobrança. Entre 2 e 730 dias.",
   "admin.giftPanel.trialBadge": "período grátis",
