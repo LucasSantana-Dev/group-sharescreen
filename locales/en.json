@@ -1,4 +1,6 @@
 {
+  "forkWatermark.text": "This site is a fork of GoLive.",
+  "forkWatermark.link": "Visit the original site",
   "pro.proPanel.dedicatedTurn": "Dedicated servers so streams connect on any network",
   "turnUpsell.title": "Is the stream laggy or not loading?",
   "turnUpsell.body": "Get Pro and use our dedicated servers: they connect even when your network blocks direct connections.",

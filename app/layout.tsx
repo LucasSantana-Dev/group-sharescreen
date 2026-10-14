@@ -4,6 +4,7 @@ import Script from "next/script";
 import { StatusBanner } from "@/components/StatusBanner";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { CapacitorBridge } from "@/components/CapacitorBridge";
+import { ForkWatermark } from "@/components/ForkWatermark";
 import { LastScreenRestorer } from "@/components/LastScreenRestorer";
 import { InstallAppButton } from "@/components/InstallAppButton";
 import { MobileTabBar } from "@/components/MobileTabBar";
@@ -32,6 +33,10 @@ import { CHUNK_RECOVERY_SCRIPT } from "@/lib/chunkRecovery";
 import "./globals.css";
 import SupressErrors from "./middlewares/SupressErrors";
 import { translate } from "@/lib/i18n";
+
+// Only the original deployment sets this. Any other copy of the code — a fork
+// — shows ForkWatermark, pointing back at the original site.
+const IS_ORIGINAL_SITE = process.env.THIS_IS_THE_ORIGINAL_SITE_DONT_CHANGE_THIS_OR_I_WILL_SUE_YOU === "true";
 
 const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
 // Google Analytics 4, alongside Umami rather than instead of it — see
@@ -309,6 +314,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <AuthProvider>
               <NtPopups>
                 <CapacitorBridge />
+                {!IS_ORIGINAL_SITE && <ForkWatermark />}
                 <LastScreenRestorer />
                 <PresenceReporter />
                 {/* Renders nothing; it is the thing that fills the bell. At the

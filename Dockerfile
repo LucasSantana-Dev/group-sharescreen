@@ -23,6 +23,10 @@ COPY . .
 # NEXT_PUBLIC_* vars are baked into the client bundle at build time.
 # No defaults here on purpose — pass real values via:
 #   docker build --build-arg NEXT_PUBLIC_SIGNALING_URL=wss://seu-dominio/ws ...
+# "true" only on the original deployment; anything else shows the fork notice
+# (components/ForkWatermark.tsx). Read by the root layout at build time.
+ARG THIS_IS_THE_ORIGINAL_SITE_DONT_CHANGE_THIS_OR_I_WILL_SUE_YOU
+ENV THIS_IS_THE_ORIGINAL_SITE_DONT_CHANGE_THIS_OR_I_WILL_SUE_YOU=${THIS_IS_THE_ORIGINAL_SITE_DONT_CHANGE_THIS_OR_I_WILL_SUE_YOU}
 ARG NEXT_PUBLIC_SIGNALING_URL
 ENV NEXT_PUBLIC_SIGNALING_URL=${NEXT_PUBLIC_SIGNALING_URL}
 ARG NEXT_PUBLIC_TURN_URLS

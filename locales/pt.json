@@ -1,4 +1,6 @@
 {
+  "forkWatermark.text": "Este site é uma cópia (fork) do GoLive.",
+  "forkWatermark.link": "Acesse o site original",
   "pro.proPanel.dedicatedTurn": "Servidores dedicados para a transmissão conectar em qualquer rede",
   "turnUpsell.title": "A transmissão está ruim ou não carrega?",
   "turnUpsell.body": "Assine o Pro e use nossos servidores dedicados: eles conectam mesmo quando a sua rede bloqueia a conexão direta.",
