@@ -19,6 +19,7 @@
     "electron:start": "npm run electron:build && electron .",
     "electron:pack": "npm run electron:build && electron-builder --dir",
     "electron:dist": "npm run electron:build && electron-builder",
+    "electron:store": "npm run electron:build && electron-builder --win appx --x64 --publish never",
     "android:sync": "cap sync android",
     "android:open": "cap sync android && cap open android",
     "android:assets": "capacitor-assets generate --android",

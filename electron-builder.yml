@@ -125,6 +125,28 @@ win:
   signtoolOptions:
     signingHashAlgorithms: [sha256]
 
+# Microsoft Store package. Not in win.target on purpose: CI's electron:dist
+# publishes everything it builds to the GitHub release, and the /download
+# route has no use for an .appx — it only installs from the Store. Built on
+# its own with `npm run electron:store`, uploaded by hand in Partner Center,
+# which signs it; that is why no certificate is needed here.
+#
+# The three identity values come from Partner Center → Identidade do Produto
+# and must match it exactly, or the upload is rejected. Tile images live in
+# electron/build/appx/ (generated from icon.png).
+#
+# Updates: the Store updates this package by itself, so updater.ts stands
+# down when process.windowsStore is set.
+appx:
+  identityName: NemTudo.GoLive-Chamadasemgrupogratutas
+  publisher: CN=5AE1C615-5315-40BB-81A6-D09F7EE11944
+  publisherDisplayName: Nem Tudo
+  displayName: Go Live - Chamadas em grupo gratuítas
+  applicationId: GoLive
+  backgroundColor: transparent
+  languages: [pt-BR, en-US, es-ES]
+  artifactName: ${productName}-Store-${version}.${ext}
+
 nsis:
   # "Setup" in the name so it reads as an installer rather than the app
   # itself once it is sitting in someone's Downloads folder.
