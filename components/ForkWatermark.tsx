@@ -5,17 +5,22 @@ import { useT } from "@/lib/useI18n";
 // The notice a fork of GoLive carries: shown by app/layout.tsx unless the
 // deployment sets THIS_IS_THE_ORIGINAL_SITE_DONT_CHANGE_THIS_OR_I_WILL_SUE_YOU=true.
 export const ORIGINAL_SITE_URL = "https://golive.nemtudo.me";
+const ORIGINAL_LOGO_URL = "https://golive.nemtudo.me/icon.png";
 
 export function ForkWatermark() {
   const t = useT();
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] flex justify-center px-4 pb-1">
-      <p className="pointer-events-auto rounded-t-md bg-black/70 px-3 py-1 text-center text-[11px] text-white/90 backdrop-blur-sm">
-        {t("forkWatermark.text")}{" "}
-        <a href={ORIGINAL_SITE_URL} target="_blank" rel="noopener" className="font-semibold underline">
-          {t("forkWatermark.link")}
-        </a>
-      </p>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] flex justify-center px-4 pb-2">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-xl bg-black/80 px-4 py-2.5 text-sm text-white shadow-lg backdrop-blur-sm sm:text-base">
+        {/* eslint-disable-next-line @next/next/no-img-element -- hardcoded on purpose: a fork's own assets may change */}
+        <img src={ORIGINAL_LOGO_URL} alt="GoLive" width={32} height={32} className="h-8 w-8 shrink-0 rounded-md" />
+        <p>
+          {t("forkWatermark.text")}{" "}
+          <a href={ORIGINAL_SITE_URL} rel="noopener" className="font-semibold underline">
+            {t("forkWatermark.link")}
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
