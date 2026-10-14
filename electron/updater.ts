@@ -369,6 +369,16 @@ export function initAutoUpdater(
   // keeps `npm run electron:dev` quiet.
   if (!app.isPackaged) return;
 
+  // A Microsoft Store (AppX/MSIX) install is updated by the Store itself, in
+  // the background, the same way it updates every other Store app — and it
+  // has to be: the package lives in the read-only WindowsApps folder and is
+  // owned by the system, so electron-updater's NSIS installer could neither
+  // replace it nor be the right thing to run. Worse, it would install a
+  // *second*, unpackaged copy beside it. So the Store build never polls
+  // GitHub; pendingVersion stays null and the page simply never offers the
+  // button, which is correct because there is never anything for it to do.
+  if (process.windowsStore) return;
+
   logPath = path.join(app.getPath("userData"), "updater.log");
   statePath = path.join(app.getPath("userData"), STATE_FILE);
   autoUpdater.logger = fileLogger;
