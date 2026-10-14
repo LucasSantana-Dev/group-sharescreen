@@ -3,8 +3,7 @@
 import { useT } from "@/lib/useI18n";
 
 // The notice a fork of GoLive carries: shown by app/layout.tsx unless the
-// deployment sets THIS_IS_THE_ORIGINAL_SITE_DONT_CHANGE_THIS_OR_I_WILL_SUE_YOU=true.
-export const ORIGINAL_SITE_URL = "https://golive.nemtudo.me";
+export const ORIGINAL_SITE_URL = "https://golive.nemtudo.me/?utm_source=golive_fork&utm_medium=fork&utm_campaign=golive_fork";
 const ORIGINAL_LOGO_URL = "https://golive.nemtudo.me/icon.png";
 
 export function ForkWatermark() {
