@@ -1,66 +1,239 @@
-# Fork Attribution Non-Commercial License (FANCL) 1.0
+# Fork Attribution and Revenue Sharing License (FARSL) 1.0
 
-Copyright (c) 2026 Nem Tudo
+**Copyright Holder:** Nem Tudo  
+**Original Project:** Go Live  
+**Official Website:** https://golive.nemtudo.me  
+**License Version:** 1.0  
+**Effective Date:** October 14, 2026  
+**Contact:** Nem Tudo, through the official project website or its designated contact channels.
 
-## 1. Permission
+Copyright (c) 2026 Nem Tudo. All rights reserved, subject to the permissions expressly granted by this license.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, merge, publish, and distribute the Software, subject to the conditions below.
+## 1. Definitions
 
-**Commercial use is strictly prohibited.** No permission is granted to use the Software for commercial purposes, except where explicitly authorized in writing by the copyright holder.
+For the purposes of this license:
 
-## 2. Non-Commercial Use
+**1.1. "Original Software"** means the GO Live software project, including the source code and other components for which the copyright holder has the necessary rights to grant permissions under this license.
 
-The Software may be used solely for personal, educational, research, and other non-commercial purposes.
+**1.2. "Derivative Work"** means a modified version, fork, adaptation, or other work based on or incorporating protectable portions of the Original Software.
 
-Without prior written permission from the copyright holder, no person or entity may:
+**1.3. "Copyright Holder"** means Nem Tudo, to the extent that Nem Tudo owns or is authorized to license the relevant rights.
 
-- Sell, rent, lease, sublicense, or otherwise commercially distribute the Software.
-- Offer the Software or any modified version as a paid product or service.
-- Use the Software to provide paid services, including hosting, SaaS, or other commercial offerings.
-- Monetize the Software through advertising, subscriptions, access fees, or other revenue-generating activities.
-- Use the Software as part of a commercial product, service, or business activity.
+**1.4. "Commercial Use"** means using, operating, distributing, offering, or incorporating the Software or a Derivative Work in an activity intended to generate revenue, financial gain, or commercial advantage.
 
-Commercial use includes any use intended primarily for financial gain, commercial advantage, or business operations.
+**1.5. "Gross Commercial Revenue"** means revenue actually received from Commercial Use of the Software or a Derivative Work, before deducting ordinary business expenses, hosting costs, salaries, payment processing fees, and other operating expenses. Taxes collected on behalf of government authorities and subsequently remitted, refunds, and reversed transactions may be excluded to the extent they are properly documented and applicable law permits.
 
-## 3. Fork Identification
+**1.6. "Commercial License"** means a separate written agreement expressly authorizing Commercial Use of the Software and incorporating the revenue-sharing obligations set out in Section 4.
 
-Any distributed version of the Software that has been modified from the original version must clearly and prominently identify itself as a fork, modified version, or derivative work of the original Software.
+## 2. Grant of Non-Commercial Permissions
 
-The identification must make clear that the modified version is not the official version of the original Software.
+Subject to the terms of this license, permission is granted, free of charge, to any person obtaining a copy of the Software and its associated documentation to use, copy, study, modify, and distribute the Software for non-commercial purposes.
 
-Acceptable examples include:
+These permissions are conditional upon compliance with the identification, attribution, source-code, copyright notice, and other applicable requirements of this license.
 
-- "Fork of GO Live"
-- "Modified version of Go Live"
-- "Based on Go Live"
-- "Unofficial fork of Go Live"
+**This license does not independently authorize Commercial Use.** Commercial Use is permitted only under a valid Commercial License granted by the Copyright Holder.
 
-The identification must not be removed, hidden, or presented in a manner reasonably likely to cause users to believe that the modified version is the official version of the original Software.
+Nothing in this license grants rights to third-party components beyond the permissions provided by their respective licenses.
 
-## 4. Preservation of Copyright and License Notices
+## 3. Fork Identification and Watermark Preservation
 
-The copyright notice, this license, and existing attribution notices included with the original Software must be preserved in copies and substantial portions of the Software.
+The Software includes a default fork identification watermark identifying the original project and its official website.
 
-## 5. Source Code
+Any person or entity using, modifying, distributing, or operating a fork or Derivative Work must preserve the existing default fork identification watermark.
 
-When distributing modified versions of the Software, the distributor must make the corresponding source code available under the terms of this license.
+The fork identification and watermark are the same element.
 
-## 6. No Endorsement
+The watermark must not be removed, hidden, disabled, obscured, or altered in a manner that diminishes its visibility or attribution function.
 
-Modification, redistribution, or use of the Software does not grant the right to imply endorsement, sponsorship, or official affiliation with the original author or project.
+The watermark must remain visible during ordinary use of the website, application, or service and must continue to identify the original project and its official website:
 
-## 7. Trademark
+https://golive.nemtudo.me
 
-This license does not grant permission to use the names, logos, trademarks, service marks, or other branding of the original project except as necessary to comply with Section 3.
+Fork maintainers may add their own branding provided that it does not replace, obscure, or diminish the original watermark or mislead users into believing that the fork is the official version of GO Live.
 
-The original project may publish a separate trademark policy governing use of its name and branding.
+Exceptions require prior written authorization from the Copyright Holder.
 
-## 8. Disclaimer
+## 4. Commercial Licensing and Revenue Sharing
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+### 4.1. Requirement for Commercial Authorization
 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF THE SOFTWARE.
+Any person or entity wishing to commercially use, distribute, operate, host, monetize, or provide a service based on the Software or a Derivative Work must obtain a Commercial License from the Copyright Holder before commencing such activity.
 
-## 9. Acceptance
+The Copyright Holder may grant, refuse, suspend, or terminate commercial authorization in accordance with the applicable agreement and applicable law.
 
-By exercising any rights granted under this license, the recipient agrees to comply with the conditions of this license.
+Commercial authorization is not granted merely because the Software is publicly available, because its source code can be accessed, or because a person has created a fork.
+
+### 4.2. Revenue-Sharing Rate
+
+Unless a different rate is expressly agreed in a written Commercial License, the commercial licensee must pay the Copyright Holder a royalty equal to **40% of Gross Commercial Revenue attributable to the Software or the authorized Derivative Work**.
+
+The royalty is consideration for the commercial permissions granted under the Commercial License.
+
+The royalty obligation applies to revenue-generating activities involving the Software, including:
+
+- Paid software downloads and sales.
+- Subscriptions, memberships, and access fees.
+- Software-as-a-Service (SaaS), hosting, and paid access to services based on the Software.
+- Advertising revenue attributable to pages, services, or applications operated using the Software.
+- Sponsorships and affiliate revenue attributable to the commercial offering.
+- Commercial sublicensing and licensing fees.
+- Other revenue-generating activities expressly covered by the Commercial License.
+
+Personal gifts or donations unrelated to commercial activity are not automatically included. Donations, sponsorships, or contributions solicited as part of a commercial offering may be included when reasonably attributable to that offering.
+
+### 4.3. Attribution of Revenue
+
+Where the Software is offered alongside independent products or services, the royalty applies to the portion of Gross Commercial Revenue reasonably attributable to the Software or the authorized Derivative Work.
+
+The licensee must use a consistent, reasonable, and verifiable allocation method. The calculation must not deliberately shift revenue to other products, entities, or payment channels to avoid the royalty.
+
+Where revenue is generated by a bundled offering, the parties may agree in writing on an allocation method before the relevant commercial activity begins.
+
+### 4.4. Accounting Period and Payment Deadline
+
+The royalty must be calculated monthly.
+
+Within 15 calendar days after the end of each calendar month, the licensee must:
+
+1. Calculate the Gross Commercial Revenue attributable to the Software.
+2. Calculate the 40% royalty due for that month.
+3. Provide the revenue statement described in Section 4.5.
+4. Pay the amount due using the payment method specified in Section 5.
+
+If no revenue is generated during a reporting month, the licensee must provide a zero-revenue statement if required under the Commercial License.
+
+### 4.5. Revenue Statements and Records
+
+The licensee must maintain accurate and reasonably complete records supporting the calculation of Gross Commercial Revenue and royalties due.
+
+Upon reasonable written request, the licensee must provide supporting documentation sufficient to verify the calculation, subject to reasonable confidentiality and data-protection safeguards.
+
+Records must be retained for at least five years, or for any longer period required by applicable law or the Commercial License.
+
+The Copyright Holder may request clarification of a revenue statement where there is a reasonable basis to believe that it is incomplete or inaccurate.
+
+Any audit procedure, including its scope, notice period, confidentiality requirements, and allocation of audit costs, should be expressly defined in the applicable Commercial License.
+
+### 4.6. Payment Method
+
+All royalties must be paid through Pix using the designated key specified in Section 5, unless the parties expressly agree in writing to another method.
+
+The licensee must retain payment confirmations and provide proof of payment upon reasonable request.
+
+### 4.7. Disputed Calculations
+
+If the licensee disputes a revenue calculation in good faith, the licensee must notify the Copyright Holder in writing, identify the disputed items, and provide the supporting information reasonably necessary to explain the dispute.
+
+The undisputed portion of the royalty remains payable by the original deadline.
+
+The parties must make reasonable efforts to resolve the dispute in good faith. Any adjustment resulting from the resolution must be documented and paid within the period agreed by the parties or, if no period is agreed, within 15 calendar days after written resolution.
+
+A dispute must not be used as a pretext to conceal revenue or withhold amounts that are not genuinely disputed.
+
+### 4.8. Late Payment and Material Breach
+
+An overdue royalty constitutes a breach of the applicable Commercial License.
+
+The Copyright Holder may issue written notice identifying the overdue amount and requesting payment within 15 calendar days after receipt of the notice.
+
+If the breach remains unresolved after the applicable cure period, the Copyright Holder may exercise the remedies available under the Commercial License and applicable law, including seeking payment of outstanding royalties, legally recoverable interest and damages, and termination of commercial authorization where permitted.
+
+No penalty, interest rate, or additional fee is imposed by this license unless expressly agreed in writing or otherwise authorized by applicable law.
+
+### 4.9. No Automatic Commercial Authorization
+
+A person who conducts Commercial Use without obtaining the required Commercial License does not automatically become a commercial licensee merely by generating revenue or making a payment.
+
+The Copyright Holder may seek appropriate remedies for unauthorized use where supported by the applicable intellectual property rights and law.
+
+The 40% royalty is a contractual payment obligation under an accepted Commercial License. It is not, by itself, an automatic fee imposed on every person who uses or copies the Software.
+
+## 5. Designated Payment Details
+
+The designated Pix key for royalty payments is:
+
+**Pix Key:** pix@nemtudo.me
+
+The Copyright Holder may update the payment details by providing written notice to the licensee.
+
+Payments must identify the relevant reporting period and, where reasonably possible, the project or commercial service to which the payment relates.
+
+The licensee must retain proof of payment and provide it upon reasonable request.
+
+Payment obligations and deadlines remain governed by Section 4 and the applicable Commercial License.
+
+## 6. Preservation of Copyright and License Notices
+
+The copyright notice, this license, and existing attribution notices included with the Original Software must be preserved in copies and substantial portions of the Software.
+
+Nothing in this license transfers ownership of the Original Software to a recipient.
+
+Rights in original contributions made by fork maintainers remain subject to applicable law, the rights of their respective authors, and any separate agreements governing those contributions.
+
+## 7. Source Code
+
+When distributing a modified version of the Software, the distributor must make the corresponding source code available under the terms of this license to the extent required by this license and permitted by the applicable rights in the relevant code.
+
+Third-party components remain subject to their own applicable licenses. Nothing in this license overrides a third-party license or grants rights that the Copyright Holder does not possess.
+
+## 8. No Endorsement
+
+Modification, redistribution, or use of the Software does not grant permission to imply endorsement, sponsorship, partnership, or official affiliation with the original author or project.
+
+Fork maintainers must not misrepresent the relationship between their fork and the official GO Live project.
+
+## 9. Trademarks
+
+This license does not grant permission to use the names, logos, trademarks, service marks, or other branding of the original project beyond what is necessary to preserve the required attribution, unless separate written permission is granted.
+
+The Copyright Holder may publish a separate trademark policy governing use of the project's name and branding.
+
+## 10. Disclaimer of Warranty and Limitation of Liability
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT, TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW.
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR OTHER DAMAGES ARISING OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+Nothing in this section excludes or limits liability that cannot lawfully be excluded or limited.
+
+## 11. Acceptance, Termination, and Existing Permissions
+
+Recipients exercising the permissions granted by this license agree to comply with its applicable conditions, to the extent such agreement is valid and enforceable under applicable law.
+
+Commercial authorization requires a separate Commercial License accepted by the relevant parties in a legally valid manner.
+
+If a recipient materially breaches this license and fails to remedy the breach within the applicable cure period, the permissions granted under this license may terminate to the extent permitted by applicable law.
+
+Termination does not eliminate payment obligations, liabilities, or other rights that accrued before termination.
+
+Nothing in this license automatically changes the terms under which earlier versions were lawfully received. Any change to existing permissions must be assessed in accordance with the applicable prior license, agreements, and law.
+
+## 12. Governing Law and Dispute Resolution
+
+This license and any Commercial License incorporating its terms are subject to applicable law.
+
+Where Brazilian law applies, the parties' rights and obligations must be interpreted consistently with applicable Brazilian legislation, including the Software Law (Law No. 9,609/1998), copyright legislation, and the Civil Code.
+
+The competent court and any agreed dispute-resolution procedure should be specified in the applicable Commercial License, subject to mandatory jurisdictional rules.
+
+Nothing in this license excludes mandatory legal protections or remedies available under applicable law.
+
+## 13. Identification, Version, and Effective Date
+
+**License Name:** Fork Attribution and Revenue Sharing License (FARSL)
+
+**License Version:** 1.0
+
+**Copyright Holder:** Nem Tudo
+
+**Original Project:** Go Live
+
+**Official Website:** https://golive.nemtudo.me
+
+**Effective Date:** October 14, 2026
+
+This version applies from its effective date to permissions granted under this version of the license. It does not automatically replace or retroactively amend a prior license or agreement governing an earlier distribution.
+
+The Copyright Holder may publish revised versions of this license. Each revised version must identify its own version number and effective date. Unless otherwise expressly agreed, a revised version applies to permissions granted under that revised version and does not automatically alter the terms of an earlier accepted Commercial License.
+
+For commercial arrangements, the parties should identify the exact license version incorporated into their written agreement.
