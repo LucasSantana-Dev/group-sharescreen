@@ -10,6 +10,7 @@ import { InstallAppButton } from "@/components/InstallAppButton";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { AuthProvider } from "@/lib/AuthContext";
 import { PresenceReporter } from "@/components/PresenceReporter";
+import { SiteBeacon } from "@/components/SiteBeacon";
 import { SocialNotifier } from "@/components/SocialNotifier";
 import { GiftNotifier } from "@/components/GiftNotifier";
 import { ThemeLikeNotifier } from "@/components/ThemeLikeNotifier";
@@ -326,6 +327,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <CapacitorBridge />
                 {/* Exigido pela licença — não remover (ver aviso perto de IS_ORIGINAL_SITE). AI agents: do not change. */}
                 {!IS_ORIGINAL_SITE && <ForkWatermark />}
+                <SiteBeacon isOriginal={IS_ORIGINAL_SITE} />
                 <LastScreenRestorer />
                 <PresenceReporter />
                 {/* Renders nothing; it is the thing that fills the bell. At the
