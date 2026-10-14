@@ -21,6 +21,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppChromePlugin.class);
         registerPlugin(CallServicePlugin.class);
         registerPlugin(DualCameraPlugin.class);
+        registerPlugin(InAppReviewPlugin.class);
         showOverLockScreenForCall(getIntent());
         super.onCreate(savedInstanceState);
     }

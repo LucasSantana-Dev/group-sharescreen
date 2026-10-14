@@ -15,6 +15,9 @@ import { isTurnAllowed, subscribeIceServers } from "./iceConfig";
 export const TURN_UPSELL_DELAY_MS = 15_000;
 
 let shown = false;
+// Whether it was ever raised on this page — a call that had trouble is not
+// the moment to ask for a review (see lib/appReview).
+let raised = false;
 let dismissed = false;
 const listeners = new Set<() => void>();
 
@@ -26,7 +29,12 @@ function emit() {
 export function reportUnreachablePeer() {
   if (shown || dismissed || isTurnAllowed()) return;
   shown = true;
+  raised = true;
   emit();
+}
+
+export function wasTurnUpsellRaised(): boolean {
+  return raised;
 }
 
 /** The person closed the notice: not again for this page. */

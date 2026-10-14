@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { initCapacitorBridge } from "@/lib/capacitorBridge";
 import { isMobileApp } from "@/lib/desktop";
 import { setSystemBarColors } from "@/lib/nativeApp";
+import { noteAppOpen } from "@/lib/appReview";
 
 // Mounted once in the root layout, next to PresenceReporter — same pattern,
 // same reason: a component with no UI of its own whose only job is to run a
@@ -22,6 +23,8 @@ const BAR_COLOR = { light: "#ffffff", dark: "#1a1a1f" } as const;
 export function CapacitorBridge() {
   useEffect(() => {
     void initCapacitorBridge();
+    // A day the app was used, for when to ask for a review (lib/appReview).
+    noteAppOpen();
   }, []);
 
   useEffect(() => {

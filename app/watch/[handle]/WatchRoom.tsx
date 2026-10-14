@@ -268,6 +268,7 @@ import { useRecordingNotices } from "@/lib/recordingNotice";
 import { sendTileCommand } from "@/lib/tileCommands";
 import { getRoomProOffer } from "@/components/RoomProOffer";
 import TurnUpsellNotice from "@/components/TurnUpsellNotice";
+import { APP_REVIEW_FEATURE, maybeRequestAppReview } from "@/lib/appReview";
 import { isAppShell } from "@/lib/desktop";
 import { getProfileSongAutoplay, setProfileSongAutoplay } from "@/lib/profileSong";
 import { useMediaQuery, SM_BREAKPOINT_QUERY, LG_BREAKPOINT_QUERY } from "@/lib/useMediaQuery";
@@ -3877,6 +3878,15 @@ function WatchRoomView({
   // from the streams, not the tiles, so a tile hidden by hyperfocus or a
   // collapsed grid is still recorded as long as its stream is arriving.
   const callRecordingFeature = useFeature(CALL_RECORDING_FEATURE, { track: true });
+  // "Avalie o app" on Google Play, asked when leaving a call that went well
+  // (see lib/appReview). Only the Android app can show it, so only it counts.
+  const appReviewEnabled = useFeature(APP_REVIEW_FEATURE, { track: isMobileApp() }).enabled;
+  const appReviewEnabledRef = useRef(appReviewEnabled);
+  appReviewEnabledRef.current = appReviewEnabled;
+  useEffect(() => {
+    const joinedAt = Date.now();
+    return () => maybeRequestAppReview(Date.now() - joinedAt, appReviewEnabledRef.current);
+  }, [handle]);
   const [callRecordingOpen, setCallRecordingOpen] = useState(false);
   const callSources = useMemo<CallSource[]>(() => {
     const list: CallSource[] = [];
