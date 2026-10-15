@@ -33,5 +33,7 @@
   // `electron/` is a Node/CommonJS program with its own tsconfig — compiling
   // it under these options (bundler resolution, noEmit, DOM-only libs) would
   // both fail and produce nothing Electron can require.
-  "exclude": ["node_modules", "electron", "**/*.test.mts"]
+  // `capacitor.config.ts` is read by the Capacitor CLI (a devDependency), never
+  // by the site — the server installs without devDependencies.
+  "exclude": ["node_modules", "electron", "**/*.test.mts", "capacitor.config.ts"]
 }
