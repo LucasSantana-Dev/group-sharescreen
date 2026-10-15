@@ -100,9 +100,19 @@ export function PointsShopDialog({ closePopup }: { closePopup: (hasAction?: bool
     setActionError(null);
   }
 
+  // A card's "Comprar": the first press picks the item (so the preview wears
+  // it) and arms the confirmation, the second one spends the points.
+  function buyFromTile(product: CosmeticProduct) {
+    select(product);
+    if (confirmId === product.id) void buy(product);
+    else setConfirmId(product.id);
+  }
+
   function select(product: CosmeticProduct) {
-    if (confirmId && confirmId !== product.id) trackFeatureEvent(POINTS_SHOP_EVENTS.buyCancelled, { feature: POINTS_SHOP_FEATURE });
-    setConfirmId(null);
+    if (confirmId && confirmId !== product.id) {
+      trackFeatureEvent(POINTS_SHOP_EVENTS.buyCancelled, { feature: POINTS_SHOP_FEATURE });
+      setConfirmId(null);
+    }
     setActionError(null);
     if (selectedId === product.id) return;
     setSelectedId(product.id);
@@ -217,26 +227,7 @@ export function PointsShopDialog({ closePopup }: { closePopup: (hasAction?: bool
                 </p>
               </div>
             </div>
-            <PreviewAction
-              product={selected}
-              signedIn={Boolean(account)}
-              points={points}
-              owned={selected ? owned.includes(selected.id) : false}
-              equipped={selected ? equippedValue === selected.value : false}
-              confirming={selected !== null && confirmId === selected.id}
-              pending={pending}
-              onBuy={() => {
-                if (!selected) return;
-                if (confirmId === selected.id) void buy(selected);
-                else setConfirmId(selected.id);
-              }}
-              onCancel={() => {
-                setConfirmId(null);
-                trackFeatureEvent(POINTS_SHOP_EVENTS.buyCancelled, { feature: POINTS_SHOP_FEATURE });
-              }}
-              onEquip={() => selected && void equip(selected.id)}
-              onUnequip={() => void equip(null)}
-            />
+            {selected && <RarityPill product={selected} />}
           </div>
           {actionError && <p className="px-4 pb-3 text-xs text-red-500">{actionError}</p>}
         </section>
@@ -328,7 +319,19 @@ export function PointsShopDialog({ closePopup }: { closePopup: (hasAction?: bool
                     equipped={equippedValue === product.value}
                     signedIn={Boolean(account)}
                     points={points}
+                    confirming={confirmId === product.id}
+                    pending={pending}
                     onSelect={() => select(product)}
+                    onBuy={() => buyFromTile(product)}
+                    onCancel={() => {
+                      setConfirmId(null);
+                      trackFeatureEvent(POINTS_SHOP_EVENTS.buyCancelled, { feature: POINTS_SHOP_FEATURE });
+                    }}
+                    onEquip={() => {
+                      select(product);
+                      void equip(product.id);
+                    }}
+                    onUnequip={() => void equip(null)}
                   />
                 ))}
               </div>
@@ -391,7 +394,13 @@ function ItemTile({
   equipped,
   signedIn,
   points,
+  confirming,
+  pending,
   onSelect,
+  onBuy,
+  onCancel,
+  onEquip,
+  onUnequip,
 }: {
   product: CosmeticProduct;
   /** The name drawn on a name item's swatch — your own. */
@@ -401,24 +410,30 @@ function ItemTile({
   equipped: boolean;
   signedIn: boolean;
   points: number;
+  confirming: boolean;
+  pending: boolean;
   onSelect: () => void;
+  onBuy: () => void;
+  onCancel: () => void;
+  onEquip: () => void;
+  onUnequip: () => void;
 }) {
   const t = useT();
   const rarity = rarityOf(product.price);
   const style = RARITY_STYLES[rarity];
   const nameStyle = product.type === "name_color" ? nameStyleOf(product.value) : null;
   const short = signedIn && !owned && points < product.price;
+  // The card's action button lives inside it, not only under the preview:
+  // on short monitors the preview scrolls out of view and buying vanished.
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={`group flex cursor-pointer flex-col gap-2 rounded-xl border p-2 text-left transition ${style.ring} ${
+    <div
+      className={`group flex flex-col gap-2 rounded-xl border p-2 transition ${style.ring} ${
         selected
           ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-900"
           : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/60"
       }`}
     >
+    <button type="button" onClick={onSelect} aria-pressed={selected} className="flex min-w-0 cursor-pointer flex-col gap-2 text-left">
       {nameStyle ? (
         <span className="flex h-14 items-center justify-center overflow-hidden rounded-lg bg-zinc-100 px-2 dark:bg-zinc-900">
           <span className={`truncate text-base font-bold ${nameStyle.className ?? ""}`} style={nameStyle.style}>
@@ -452,11 +467,35 @@ function ItemTile({
         </span>
       )}
     </button>
+    <ItemAction
+      product={product}
+      signedIn={signedIn}
+      points={points}
+      owned={owned}
+      equipped={equipped}
+      confirming={confirming}
+      pending={pending}
+      onBuy={onBuy}
+      onCancel={onCancel}
+      onEquip={onEquip}
+      onUnequip={onUnequip}
+    />
+    </div>
   );
 }
 
-/** The one button under the preview — what can be done with the picked item right now. */
-function PreviewAction({
+function RarityPill({ product }: { product: CosmeticProduct }) {
+  const t = useT();
+  const rarity = rarityOf(product.price);
+  return (
+    <span className={`self-start rounded-full px-2 py-0.5 text-[11px] font-semibold sm:self-end ${RARITY_STYLES[rarity].pill}`}>
+      {rarityLabel(t, rarity)}
+    </span>
+  );
+}
+
+/** The button inside each card — what can be done with that item right now. */
+function ItemAction({
   product,
   signedIn,
   points,
@@ -469,7 +508,7 @@ function PreviewAction({
   onEquip,
   onUnequip,
 }: {
-  product: CosmeticProduct | null;
+  product: CosmeticProduct;
   signedIn: boolean;
   points: number;
   owned: boolean;
@@ -482,15 +521,8 @@ function PreviewAction({
   onUnequip: () => void;
 }) {
   const t = useT();
-  if (!product) return null;
-  const rarity = rarityOf(product.price);
-  const pill = (
-    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${RARITY_STYLES[rarity].pill}`}>
-      {rarityLabel(t, rarity)}
-    </span>
-  );
   const primary =
-    "flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
+    "flex w-full cursor-pointer items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
   let action: ReactNode;
   if (!signedIn) {
@@ -509,34 +541,29 @@ function PreviewAction({
     );
   } else if (points < product.price) {
     action = (
-      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+      <span className="text-center text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
         {t("pointsShop.missingPoints", { missing: (product.price - points).toLocaleString(formatLocale()) })}
       </span>
     );
   } else if (confirming) {
     action = (
-      <span className="flex items-center gap-2">
-        <button type="button" disabled={pending} onClick={onCancel} className={`${primary} text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900`}>
-          {t("common.cancel")}
-        </button>
+      <span className="flex flex-col gap-1">
         <button type="button" disabled={pending} onClick={onBuy} className={`${primary} bg-amber-500 text-amber-950 hover:bg-amber-400`}>
           {t("pointsShop.confirmBuy", { left: (points - product.price).toLocaleString(formatLocale()) })}
+        </button>
+        <button type="button" disabled={pending} onClick={onCancel} className={`${primary} text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800`}>
+          {t("common.cancel")}
         </button>
       </span>
     );
   } else {
     action = (
       <button type="button" disabled={pending} onClick={onBuy} className={`${primary} bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200`}>
-        <BsCoin className="h-3.5 w-3.5 text-amber-400 dark:text-amber-500" />
+        <BsCoin className="h-3 w-3 shrink-0 text-amber-400 dark:text-amber-500" />
         {t("pointsShop.buyFor", { price: product.price.toLocaleString(formatLocale()) })}
       </button>
     );
   }
 
-  return (
-    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-      {pill}
-      {action}
-    </div>
-  );
+  return action;
 }
