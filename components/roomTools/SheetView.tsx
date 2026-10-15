@@ -30,6 +30,9 @@ import {
   type SheetChange,
 } from "@/lib/sheet";
 import { useT } from "@/lib/useI18n";
+import dynamic from "next/dynamic";
+import { setTileExperimentMode, useTileExperiment, UNIVER_SHEET_FEATURE } from "@/lib/clipsMode";
+import { NewBadge } from "@/components/NewBadge";
 
 // The room's spreadsheet (see lib/sheet.ts): a grid everybody with access
 // edits at once, a cell at a time, with formulas worked out here. Arrow keys,
@@ -58,7 +61,45 @@ function download(name: string, blob: Blob) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Univer only loads for whoever turned "Excel" on (room-sheet-univer).
+const UniverSheet = dynamic(() => import("./UniverSheet"), { ssr: false });
+
 export function SheetView({ tool, canUse }: { tool: SheetTool; canUse: boolean }) {
+  const t = useT();
+  const univer = useTileExperiment("univerSheet", { track: true });
+  if (!univer.available) return <GridSheetView tool={tool} canUse={canUse} />;
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-1.5">
+      <div className="flex shrink-0 justify-end">
+        <button
+          type="button"
+          aria-pressed={univer.on}
+          onClick={() => setTileExperimentMode("univerSheet", !univer.on)}
+          title={t("roomTools.univerSheetHint")}
+          className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition ${
+            univer.on
+              ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              : "border-zinc-300 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          }`}
+        >
+          {t("roomTools.univerSheet")}
+          <NewBadge id={UNIVER_SHEET_FEATURE} />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">
+        {univer.active ? (
+          <div className="h-full overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700">
+            <UniverSheet tool={tool} canUse={canUse} />
+          </div>
+        ) : (
+          <GridSheetView tool={tool} canUse={canUse} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GridSheetView({ tool, canUse }: { tool: SheetTool; canUse: boolean }) {
   const t = useT();
   const values = useMemo(() => evaluateSheet(tool), [tool]);
   const [anchorState, setAnchor] = useState<Pos>({ r: 0, c: 0 });

@@ -22,7 +22,9 @@ export type TileExperiment =
   | "orientation"
   | "callRecording"
   | "callTranscript"
-  | "roomTools";
+  | "roomTools"
+  | "vscodeEditor"
+  | "univerSheet";
 
 // `defaultOn`: the switch starts on for whoever never touched it.
 const CONFIG: Record<
@@ -102,6 +104,23 @@ const CONFIG: Record<
     tipKey: "sharescreen:roomToolsTipSeen",
     defaultOn: true,
   },
+  // "Editor VS Code" (ver components/roomTools/VsCodeEditor): o editor de
+  // código das Ferramentas desenhado pelo Monaco. Desligado por padrão — são
+  // alguns MB baixados e bem mais memória que o textarea. O interruptor fica
+  // na barra do próprio editor de código, que é onde ele é usado.
+  vscodeEditor: {
+    feature: "room-code-vscode",
+    modeKey: "sharescreen:vscodeEditorMode",
+    tipKey: "sharescreen:vscodeEditorTipSeen",
+  },
+  // "Excel" (ver components/roomTools/UniverSheet): a planilha das
+  // Ferramentas desenhada pelo Univer. Desligado por padrão pelo mesmo motivo
+  // do vscodeEditor; o interruptor fica na barra da própria planilha.
+  univerSheet: {
+    feature: "room-sheet-univer",
+    modeKey: "sharescreen:univerSheetMode",
+    tipKey: "sharescreen:univerSheetTipSeen",
+  },
   musicQueue: {
     feature: "room-music-queue",
     modeKey: "sharescreen:musicQueueMode",
@@ -162,6 +181,14 @@ export const TILE_EXPERIMENT_EVENTS = {
     modeOn: "room_tools_mode_on",
     modeOff: "room_tools_mode_off",
   },
+  vscodeEditor: {
+    modeOn: "vscode_editor_on",
+    modeOff: "vscode_editor_off",
+  },
+  univerSheet: {
+    modeOn: "univer_sheet_on",
+    modeOff: "univer_sheet_off",
+  },
   musicQueue: {
     // Nomes de "modo" aqui são a aba, não a ordem aleatória: o interruptor
     // desse experimento é o botão que abre a lista.
@@ -183,6 +210,9 @@ export const TILE_EXPERIMENT_EVENTS = {
 // (BUILTIN_CLIENT_FEATURE_EVENTS), so it counts for every experiment they are
 // in without being listed in any feature's "site events"; the admin panel
 // shows it as the blue count beside "Exposições".
+export const VSCODE_EDITOR_FEATURE = "room-code-vscode";
+export const UNIVER_SHEET_FEATURE = "room-sheet-univer";
+
 export const TIP_CLICK_EVENT = "new_feature_tip_click";
 
 export function trackTileExperiment(name: string, value?: number) {

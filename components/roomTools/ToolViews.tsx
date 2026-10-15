@@ -35,6 +35,9 @@ import {
 import { transformIndex } from "@/lib/textSync";
 import { highlightCode, type CodeTokenType } from "@/lib/codeHighlight";
 import { useT } from "@/lib/useI18n";
+import dynamic from "next/dynamic";
+import { setTileExperimentMode, useTileExperiment, VSCODE_EDITOR_FEATURE } from "@/lib/clipsMode";
+import { NewBadge } from "@/components/NewBadge";
 import { DrawingSurface } from "./DrawingSurface";
 import { PasteMoveLayer } from "./PasteMoveLayer";
 import { PenToolbar } from "./PenToolbar";
@@ -288,6 +291,9 @@ export function WhiteboardView({ tool, selfUserId, isManager, canUse }: ToolView
 
 // --- Notepad and code editor -----------------------------------------------
 
+// Monaco only loads for whoever turned "VS Code" on (room-code-vscode).
+const VsCodeEditor = dynamic(() => import("./VsCodeEditor"), { ssr: false });
+
 const TOKEN_CLASS: Record<CodeTokenType, string> = {
   comment: "italic text-zinc-500",
   string: "text-emerald-700 dark:text-emerald-400",
@@ -324,6 +330,8 @@ const EXTENSIONS: Record<string, string> = {
 export function TextToolView({ tool, canUse }: ToolViewProps & { tool: TextTool }) {
   const t = useT();
   const code = tool.kind === "code";
+  const vscode = useTileExperiment("vscodeEditor", { track: code });
+  const useVsCode = code && vscode.active;
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const caret = useRef<[number, number] | null>(null);
@@ -383,6 +391,22 @@ export function TextToolView({ tool, canUse }: ToolViewProps & { tool: TextTool 
             ))}
           </select>
         )}
+        {code && vscode.available && (
+          <button
+            type="button"
+            aria-pressed={vscode.on}
+            onClick={() => setTileExperimentMode("vscodeEditor", !vscode.on)}
+            title={t("roomTools.vscodeEditorHint")}
+            className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition ${
+              vscode.on
+                ? "border-sky-500 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                : "border-zinc-300 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            }`}
+          >
+            {t("roomTools.vscodeEditor")}
+            <NewBadge id={VSCODE_EDITOR_FEATURE} />
+          </button>
+        )}
         <span className="flex-1 text-xs text-zinc-500">
           {canUse ? t("roomTools.textHint") : t("roomTools.viewOnly")} · {tool.text.length.toLocaleString()}/40.000
         </span>
@@ -400,6 +424,11 @@ export function TextToolView({ tool, canUse }: ToolViewProps & { tool: TextTool 
           {t("roomTools.download")}
         </button>
       </div>
+      {useVsCode ? (
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700">
+          <VsCodeEditor tool={tool} canUse={canUse} placeholder={canUse ? t("roomTools.codePlaceholder") : ""} />
+        </div>
+      ) : (
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-950">
         {tokens && (
           <pre
@@ -435,6 +464,7 @@ export function TextToolView({ tool, canUse }: ToolViewProps & { tool: TextTool 
           }`}
         />
       </div>
+      )}
     </div>
   );
 }
