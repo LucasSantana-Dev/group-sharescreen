@@ -6,6 +6,8 @@ import { MdCheckCircle, MdDownload, MdPhoneAndroid } from "react-icons/md";
 import { isDesktopApp } from "@/lib/desktop";
 import { detectDownloadPlatform, type DownloadPlatform } from "@/lib/downloadTargets";
 import { trackDownloadClick } from "@/lib/analytics";
+import { trackFeatureEvent, useFeature } from "@/lib/features";
+import { MS_STORE_EVENTS, MS_STORE_FEATURE, msStoreUrl } from "@/lib/msStore";
 import { useT } from "@/lib/useI18n";
 import { translate } from "@/lib/i18n";
 
@@ -46,6 +48,19 @@ type Detected = DownloadPlatform | "unknown" | "in-app" | null;
 export function DownloadPanel() {
   const t = useT();
   const [detected, setDetected] = useState<Detected>(null);
+  // Exposure only once the panel actually offers downloads (not in the app,
+  // not before detection) — that is where the Windows link is shown.
+  const offersDownloads = detected !== null && detected !== "in-app";
+  const { enabled: msStore } = useFeature(MS_STORE_FEATURE, { track: offersDownloads });
+
+  // Windows goes to the Microsoft Store listing for people in the experiment;
+  // everyone else (and the other platforms) keeps the /download route.
+  const hrefFor = (id: DownloadPlatform) => (id === "win" && msStore ? msStoreUrl() : `/download?platform=${id}`);
+  const fileFor = (id: DownloadPlatform, file: string) => (id === "win" && msStore ? "Microsoft Store" : file);
+  const onDownload = (id: DownloadPlatform) => {
+    trackDownloadClick("app-page", id);
+    if (id === "win") trackFeatureEvent(msStore ? MS_STORE_EVENTS.storeClick : MS_STORE_EVENTS.exeClick, { feature: MS_STORE_FEATURE });
+  };
 
   useEffect(() => {
     // Deferred by a tick rather than set in the effect body — the cascading
@@ -80,8 +95,9 @@ export function DownloadPanel() {
     <div>
       {main ? (
         <a
-          href={`/download?platform=${main.id}`}
-          onClick={() => trackDownloadClick("app-page", main.id)}
+          href={hrefFor(main.id)}
+          {...(main.id === "win" && msStore ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          onClick={() => onDownload(main.id)}
           className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-zinc-950 px-6 py-4 text-base font-semibold text-white shadow-sm transition hover:bg-zinc-800 sm:w-auto dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
         >
           <main.Icon className="h-5 w-5 shrink-0" />
@@ -112,13 +128,14 @@ export function DownloadPanel() {
         {PLATFORMS.filter((p) => p.id !== detected).map(({ id, name, file, Icon }) => (
           <a
             key={id}
-            href={`/download?platform=${id}`}
-            onClick={() => trackDownloadClick("app-page", id)}
+            href={hrefFor(id)}
+            {...(id === "win" && msStore ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            onClick={() => onDownload(id)}
             className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
           >
             <Icon className="h-4 w-4 shrink-0" />
             {name}
-            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-600">{file}</span>
+            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-600">{fileFor(id, file)}</span>
           </a>
         ))}
         <a
