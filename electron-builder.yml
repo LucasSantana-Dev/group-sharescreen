@@ -154,11 +154,10 @@ appx:
   # Declares windows.startupTask so the app starts with Windows. The NSIS
   # route uses setLoginItemSettings (the Run key), which a packaged app's
   # virtualized registry swallows — see loginItemSupported in background.ts.
-  # Our own extension rather than addAutoLaunchExtension, so the task can pass
-  # --golive-hidden — see the file itself.
-  customExtensionsPath: electron/build/appx-extensions.xml
-  # uap10:Parameters (in the file above) needs Windows 10 2004 or newer.
-  minVersion: 10.0.19041.0
+  # The task starts the app with no arguments (the bundled makeappx is too old
+  # for uap10:Parameters), so HIDDEN_ARG never arrives — background.ts's
+  # launchedHidden tells a logon start apart by timing instead.
+  addAutoLaunchExtension: true
 
 nsis:
   # "Setup" in the name so it reads as an installer rather than the app

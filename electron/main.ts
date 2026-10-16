@@ -72,7 +72,7 @@ import { createStoreDesktopShortcutOnce } from "./storeShortcut";
 import {
   applyFirstRunDefaults,
   getBackgroundSettings,
-  launchedHidden,
+  launchedHiddenAsync,
   loginItemSupported,
   setOpenAtLogin,
   setRunInBackground,
@@ -1059,8 +1059,9 @@ function createWindow(initialUrl: string = APP_URL) {
   // with the system is to be *reachable*, not to put a window in front of
   // somebody who just turned their computer on.
   mainWindow.once("ready-to-show", () => {
-    if (launchedHidden()) return;
-    mainWindow?.show();
+    void launchedHiddenAsync().then((hidden) => {
+      if (!hidden) mainWindow?.show();
+    });
   });
 
   // Closing the window is not quitting, unless the person said so.

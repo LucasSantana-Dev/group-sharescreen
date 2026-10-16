@@ -28,6 +28,7 @@
 // removed.
 
 import { app } from "electron";
+import { execFile } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { BackgroundSettings } from "./channels";
@@ -45,6 +46,48 @@ const SETTINGS_FILE = "background.json";
  * difference nobody remembers when reading the code six months later.
  */
 export const HIDDEN_ARG = "--golive-hidden";
+
+// How soon after logon a Store launch still counts as the startup task.
+const STORE_LOGON_WINDOW_MS = 90_000;
+
+/**
+ * The Store build's answer to "did logon start us?".
+ *
+ * Its startup task (appx.addAutoLaunchExtension) cannot pass HIDDEN_ARG, and
+ * nothing else tells a startup-task launch from a click on the Start menu
+ * without WinRT. So it goes by timing: explorer.exe starts at logon, and a
+ * launch within STORE_LOGON_WINDOW_MS of it is taken as the startup task.
+ * Someone who opens the app by hand that early finds it in the tray, and a
+ * second click shows the window (second-instance → focusMainWindow).
+ *
+ * Started at module load and awaited at ready-to-show, so the PowerShell
+ * round trip overlaps the page load instead of delaying the window.
+ */
+const storeLogonLaunch: Promise<boolean> =
+  process.platform === "win32" && process.windowsStore && !process.argv.some((arg) => arg.includes("://"))
+    ? new Promise((resolve) => {
+        const startedAt = Date.now() - process.uptime() * 1000;
+        execFile(
+          "powershell.exe",
+          [
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "(Get-Process explorer -ErrorAction SilentlyContinue | Sort-Object StartTime | Select-Object -First 1).StartTime.ToUniversalTime().ToString('o')",
+          ],
+          { windowsHide: true, timeout: 5000 },
+          (error, stdout) => {
+            const explorerAt = error ? NaN : Date.parse(String(stdout).trim());
+            resolve(Number.isFinite(explorerAt) && startedAt - explorerAt < STORE_LOGON_WINDOW_MS);
+          }
+        );
+      })
+    : Promise.resolve(false);
+
+/** launchedHidden, plus the Store build's timing check — see storeLogonLaunch. */
+export async function launchedHiddenAsync(): Promise<boolean> {
+  return launchedHidden() || (await storeLogonLaunch);
+}
 
 /** Whether *this* launch was the machine starting us, rather than a person. */
 export function launchedHidden(): boolean {
@@ -110,7 +153,7 @@ export function loginItemSupported(): boolean {
   // logon — and getLoginItemSettings reads that same hive back, so the switch
   // would report "on" while nothing happens. Autostart there comes from the
   // windows.startupTask extension in the package manifest
-  // (electron/build/appx-extensions.xml) and is toggled in Task Manager →
+  // (appx.addAutoLaunchExtension) and is toggled in Task Manager →
   // Startup.
   if (process.windowsStore) return false;
   return process.platform === "win32" || process.platform === "darwin" || process.platform === "linux";
