@@ -13,6 +13,15 @@ directories:
 # Naming them explicitly makes all of it the same string.
 artifactName: ${productName}-${version}.${ext}
 
+# The golive:// scheme (OAuth callback and "abrir no app"). main.ts also
+# registers it at runtime, which is enough for NSIS and macOS — but a Store
+# (MSIX) package writes that registration into its virtualized registry,
+# where Windows never looks. Declared here, it goes into the appx manifest
+# as a windows.protocol extension, and into Info.plist / the installer too.
+protocols:
+  - name: GoLive
+    schemes: [golive]
+
 # Where `electron-builder --publish always` uploads the installers, and what
 # the site's /download route reads to find the newest ones. GitHub Releases
 # is also what an auto-updater would consume later, so pointing at it now
@@ -103,6 +112,10 @@ win:
   # then falls back to Electron's own loopback capture. The directory itself
   # is committed with a .gitkeep for exactly this reason.
   extraResources:
+    # The Store build copies this out to its LocalState folder for the desktop
+    # shortcut it creates — see electron/storeShortcut.ts.
+    - from: electron/build/icon.ico
+      to: icon.ico
     - from: electron/native/bin
       to: .
       filter:
@@ -146,6 +159,14 @@ appx:
   backgroundColor: transparent
   languages: [pt-BR, en-US, es-ES]
   artifactName: ${productName}-Store-${version}.${ext}
+  # Declares windows.startupTask so the app starts with Windows. The NSIS
+  # route uses setLoginItemSettings (the Run key), which a packaged app's
+  # virtualized registry swallows — see loginItemSupported in background.ts.
+  # Our own extension rather than addAutoLaunchExtension, so the task can pass
+  # --golive-hidden — see the file itself.
+  customExtensionsPath: electron/build/appx-extensions.xml
+  # uap10:Parameters (in the file above) needs Windows 10 2004 or newer.
+  minVersion: 10.0.19041.0
 
 nsis:
   # "Setup" in the name so it reads as an installer rather than the app

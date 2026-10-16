@@ -1,0 +1,14 @@
+<!-- Appended inside <Extensions> of the Store manifest (appx.customExtensionsPath).
+     Replaces electron-builder's addAutoLaunchExtension, whose startup task
+     launches the app with no arguments: without HIDDEN_ARG
+     (electron/background.ts) the window would pop up on every logon instead
+     of starting in the tray. uap10:Parameters is what passes it, and is why
+     appx.minVersion is 10.0.19041.0 (Windows 10 2004). -->
+        <desktop:Extension
+          xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+          Category="windows.startupTask"
+          Executable="app\Go Live.exe"
+          EntryPoint="Windows.FullTrustApplication"
+          uap10:Parameters="--golive-hidden">
+          <desktop:StartupTask TaskId="GoLiveStartup" Enabled="true" DisplayName="Go Live" />
+        </desktop:Extension>

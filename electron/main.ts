@@ -68,6 +68,7 @@ import { desktopOAuthNonce } from "../lib/desktop";
 import { initAutoUpdater } from "./updater";
 import { createInputHook } from "./inputHook";
 import { createScreenPen } from "./screenPen";
+import { createStoreDesktopShortcutOnce } from "./storeShortcut";
 import {
   applyFirstRunDefaults,
   getBackgroundSettings,
@@ -1270,6 +1271,9 @@ function buildTrayMenu(): Menu {
       type: "checkbox",
       checked: settings.openAtLogin,
       enabled: settings.supported,
+      // Store build: autostart belongs to Windows (Task Manager → Startup),
+      // so an always-off, greyed-out switch would only mislead.
+      visible: !process.windowsStore,
       click: (item) => {
         setOpenAtLogin(item.checked);
         refreshTrayMenu();
@@ -1933,12 +1937,19 @@ if (!gotLock) {
   app.whenReady().then(() => {
     // Declare the app identity to Windows before anything can raise a toast,
     // or notifications silently no-op (see APP_USER_MODEL_ID).
-    app.setAppUserModelId(APP_USER_MODEL_ID);
+    // A Store (MSIX) install already has one, from its package identity, and
+    // toasts are routed by it — overriding it would point them elsewhere.
+    if (!process.windowsStore) app.setAppUserModelId(APP_USER_MODEL_ID);
 
     // In dev the executable is Electron itself, so the OS has to be told
     // which binary and argv to invoke — otherwise the protocol registers
     // against `electron.exe` with no script and the callback lands nowhere.
-    if (process.defaultApp && process.argv.length >= 2) {
+    // A Store (MSIX) install declares the scheme in its manifest instead
+    // (`protocols` in electron-builder.yml): a runtime registration would only
+    // land in the package's virtualized registry.
+    if (process.windowsStore) {
+      // Nothing to do.
+    } else if (process.defaultApp && process.argv.length >= 2) {
       app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
     } else {
       app.setAsDefaultProtocolClient(PROTOCOL);
@@ -2166,6 +2177,8 @@ if (!gotLock) {
     // Autostart, on the very first run only — see applyFirstRunDefaults for
     // why "only".
     applyFirstRunDefaults();
+    // The Store installs no desktop shortcut; make one, first run only.
+    createStoreDesktopShortcutOnce();
     refreshTrayMenu();
 
     // Read unconditionally, and therefore deleted unconditionally, even when

@@ -105,13 +105,21 @@ function write(next: StoredSettings): void {
  * silently does nothing.
  */
 export function loginItemSupported(): boolean {
+  // A Store (MSIX) install gets a virtualized registry: the Run key Electron
+  // writes lands in the package's private hive, which Windows never reads at
+  // logon — and getLoginItemSettings reads that same hive back, so the switch
+  // would report "on" while nothing happens. Autostart there comes from the
+  // windows.startupTask extension in the package manifest
+  // (electron/build/appx-extensions.xml) and is toggled in Task Manager →
+  // Startup.
+  if (process.windowsStore) return false;
   return process.platform === "win32" || process.platform === "darwin" || process.platform === "linux";
 }
 
 export function getBackgroundSettings(): BackgroundSettings {
   const stored = read();
   let openAtLogin = false;
-  try {
+  if (loginItemSupported()) try {
     openAtLogin = app.getLoginItemSettings().openAtLogin;
   } catch {
     // Some Linux desktops throw rather than answer. False is the safe report:
