@@ -13,15 +13,6 @@ directories:
 # Naming them explicitly makes all of it the same string.
 artifactName: ${productName}-${version}.${ext}
 
-# The golive:// scheme (OAuth callback and "abrir no app"). main.ts also
-# registers it at runtime, which is enough for NSIS and macOS — but a Store
-# (MSIX) package writes that registration into its virtualized registry,
-# where Windows never looks. Declared here, it goes into the appx manifest
-# as a windows.protocol extension, and into Info.plist / the installer too.
-protocols:
-  - name: GoLive
-    schemes: [golive]
-
 # Where `electron-builder --publish always` uploads the installers, and what
 # the site's /download route reads to find the newest ones. GitHub Releases
 # is also what an auto-updater would consume later, so pointing at it now
@@ -85,7 +76,8 @@ files:
 # The desktop build's whole purpose is a real screen picker and a working
 # OAuth handoff, so the protocol registration below is load-bearing rather
 # than a nicety: without it the login started in the browser has nowhere to
-# come back to.
+# come back to. It also puts the scheme in the Store (appx) manifest, where
+# main.ts's runtime registration cannot reach (virtualized registry).
 protocols:
   - name: GoLive
     schemes:
