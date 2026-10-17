@@ -1,7 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { getRoomToolsState, type DrawTool, type SheetTool, type Stroke, type TextTool, type WheelTool } from "@/lib/roomTools";
+import { getRoomToolsState, type DrawTool, type SheetTool, type Stroke, type TextTool, type WheelTool, type CalcTool } from "@/lib/roomTools";
+import { evaluate, formatNumber } from "@/lib/calc";
 import { drawWheel } from "@/lib/wheel";
 import { DEFAULT_COL_WIDTH, cellKey, colName, displayValue, evaluateSheet, isFormulaError } from "@/lib/sheet";
 import { highlightCode, type CodeTokenType } from "@/lib/codeHighlight";
@@ -362,6 +363,33 @@ function drawSheet(ctx: CanvasRenderingContext2D, sheet: SheetTool, width: numbe
   ctx.textAlign = "left";
 }
 
+/** The calculator: its display, big, and the last few results under it. */
+function drawCalc(ctx: CanvasRenderingContext2D, tool: CalcTool, width: number, height: number, colors: Palette) {
+  const ans = tool.history[0] ? Number(tool.history[0].result) || 0 : 0;
+  const preview = tool.expr ? evaluate(tool.expr, { mode: tool.angle, ans }) : null;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = colors.text;
+  ctx.font = "600 44px system-ui, sans-serif";
+  ctx.fillText(tool.expr || "0", width - 24, 72, width - 48);
+  if (preview?.ok && formatNumber(preview.value) !== tool.expr) {
+    ctx.globalAlpha = 0.6;
+    ctx.font = "24px system-ui, sans-serif";
+    ctx.fillText(`= ${formatNumber(preview.value)}`, width - 24, 108, width - 48);
+    ctx.globalAlpha = 1;
+  }
+  ctx.font = "20px system-ui, sans-serif";
+  let y = 160;
+  for (const entry of tool.history) {
+    if (y > height - 12) break;
+    ctx.globalAlpha = 0.75;
+    ctx.fillText(`${entry.expr} = ${entry.result}`, width - 24, y, width - 48);
+    y += 30;
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = "left";
+}
+
 /** Draws a room tool (whiteboard, notepad, code editor, spreadsheet, document) as it is now. */
 export function toolDrawer(toolId: string): Draw {
   return (ctx, width, height) => {
@@ -372,7 +400,8 @@ export function toolDrawer(toolId: string): Draw {
     ctx.fillStyle = colors.background;
     ctx.fillRect(0, 0, width, height);
     if (!tool) return;
-    if (tool.kind === "wheel") drawWheel(ctx, tool as WheelTool, width, height, colors.text);
+    if (tool.kind === "calc") drawCalc(ctx, tool as CalcTool, width, height, colors);
+    else if (tool.kind === "wheel") drawWheel(ctx, tool as WheelTool, width, height, colors.text);
     else if (tool.kind === "sheet") drawSheet(ctx, tool as SheetTool, width, height, colors);
     else if (tool.kind === "doc") drawDoc(ctx, (tool as TextTool).text, width, height, colors);
     else if (tool.kind === "notepad") drawWrappedText(ctx, (tool as TextTool).text, width, height, colors);

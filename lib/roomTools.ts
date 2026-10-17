@@ -25,7 +25,7 @@ import { applySheetChange, changeIsIdempotent, type SheetChange, type SheetData 
 // stroke or a keystroke in the notepad arrives many times a second, and none
 // of that is any business of the sixty other things that state carries.
 
-export type ToolKind = "whiteboard" | "notepad" | "annotate" | "poll" | "reactions" | "code" | "tasks" | "sheet" | "doc" | "wheel";
+export type ToolKind = "whiteboard" | "notepad" | "annotate" | "poll" | "reactions" | "code" | "tasks" | "sheet" | "doc" | "wheel" | "calc";
 export type ToolAccess = "everyone" | "managers" | "selected";
 export type StrokeShape = "pen" | "highlighter" | "line" | "arrow" | "rect" | "ellipse" | "text" | "image";
 
@@ -64,6 +64,8 @@ export const ROOM_TOOLS_EVENTS = {
   // The wheel: a spin, and a preset that filled its list.
   wheelSpin: "room_tools_wheel_spin",
   wheelPreset: "room_tools_wheel_preset",
+  // The calculator: "=" pressed (once per tool per page — see trackFirstUse).
+  calcEquals: "room_tools_calc_equals",
 } as const;
 
 export function trackRoomToolsEvent(name: string) {
@@ -80,11 +82,11 @@ function trackFirstUse(toolId: string, name: string) {
 }
 
 /** What the tools panel offers to open, in order. Polls open from the chat's "+". */
-export const PANEL_KINDS: ToolKind[] = ["whiteboard", "notepad", "code", "sheet", "doc", "tasks", "wheel", "annotate"];
+export const PANEL_KINDS: ToolKind[] = ["whiteboard", "notepad", "code", "sheet", "doc", "tasks", "wheel", "calc", "annotate"];
 /** The panel's kinds that only the office experiment shows (see ROOM_TOOLS_OFFICE_FEATURE). */
 export const OFFICE_KINDS: ToolKind[] = ["sheet", "doc"];
 /** The kinds that are a tile in the room's grid. */
-export const MEDIA_KINDS: ToolKind[] = ["whiteboard", "notepad", "code", "sheet", "doc", "wheel"];
+export const MEDIA_KINDS: ToolKind[] = ["whiteboard", "notepad", "code", "sheet", "doc", "wheel", "calc"];
 /** The kinds edited as one shared text (see lib/textSync.ts). A document's text is its HTML. */
 export const TEXT_KINDS: ToolKind[] = ["notepad", "code", "doc"];
 function isTextTool(tool: RoomTool): tool is TextTool {
@@ -105,6 +107,7 @@ export const TOOL_FEATURES: Record<ToolKind, Feature> = {
   sheet: "room_tools_text",
   doc: "room_tools_text",
   wheel: "room_tools_basic",
+  calc: "room_tools_basic",
 };
 
 /** Whether an account with `features` may open a tool of this kind. The free kinds need nothing. */
@@ -284,7 +287,17 @@ export function wheelSpinStart(spin: WheelSpin): number {
   return start;
 }
 
-export type RoomTool = DrawTool | TextTool | PollTool | TasksTool | ReactionsTool | SheetTool | WheelTool;
+// The calculator — the mirror of the API's CalcTool.
+export type CalcEntry = { id: string; expr: string; result: string; byName: string; at: number };
+export type CalcTool = ToolBase & {
+  kind: "calc";
+  expr: string;
+  history: CalcEntry[];
+  memory: number;
+  angle: "deg" | "rad";
+};
+
+export type RoomTool = DrawTool | TextTool | PollTool | TasksTool | ReactionsTool | SheetTool | WheelTool | CalcTool;
 
 export type RaisedHand = { id: string; name: string; at: number };
 /** Somebody else's stroke while they are still drawing it (see "tool-stroke-live"). */
@@ -414,6 +427,10 @@ function startSync(tool: TextTool): void {
 }
 
 let strokeCounter = 0;
+
+// The calculator: how many displays this client sent, by tool — what tells
+// the latest echo of its own from an older one (see "tool-calc-expr").
+const calcSeq = new Map<string, number>();
 
 // Listeners for remote edits, by tool — how an open editor learns to move
 // its caret (see TextToolEditor).
@@ -698,6 +715,17 @@ function handleMessage(msg: Record<string, unknown>) {
       updateTool(msg.id as string, ["sheet"], (tool) => applySheetChange(tool, change));
       break;
     }
+    case "tool-calc-expr": {
+      // The calculator's display as somebody typed it. Our own come back too:
+      // only the latest one we sent is taken, so a slow echo never undoes a
+      // keystroke made since.
+      const id = msg.id as string;
+      const expr = typeof msg.expr === "string" ? msg.expr : null;
+      if (expr === null) break;
+      if (msg.from === signalingClient.getSnapshot().selfId && msg.seq !== calcSeq.get(id)) break;
+      updateTool(id, ["calc"], (tool) => (tool.expr === expr ? tool : { ...tool, expr }));
+      break;
+    }
     case "tool-reaction": {
       const emoji = typeof msg.emoji === "string" ? msg.emoji : "";
       if (!emoji) break;
@@ -950,6 +978,30 @@ export const roomTools = {
   wheelSpin(toolId: string) {
     send({ type: "tool-wheel", id: toolId, action: "spin" });
     trackRoomToolsEvent(ROOM_TOOLS_EVENTS.wheelSpin);
+  },
+
+  // --- The calculator (see the API's "tool-calc") ---
+  /** The display is now `expr`: shown at once, sent to the room. */
+  calcSet(toolId: string, expr: string) {
+    const seq = (calcSeq.get(toolId) ?? 0) + 1;
+    calcSeq.set(toolId, seq);
+    updateTool(toolId, ["calc"], (tool) => ({ ...tool, expr }));
+    send({ type: "tool-calc", id: toolId, action: "set", expr, seq });
+  },
+  calcEquals(toolId: string) {
+    const tool = state.tools.find((t) => t.id === toolId);
+    if (tool?.kind !== "calc") return;
+    send({ type: "tool-calc", id: toolId, action: "equals", expr: tool.expr });
+    trackFirstUse(toolId, ROOM_TOOLS_EVENTS.calcEquals);
+  },
+  calcMemory(toolId: string, op: "add" | "sub" | "clear") {
+    send({ type: "tool-calc", id: toolId, action: "memory", op });
+  },
+  calcAngle(toolId: string, angle: "deg" | "rad") {
+    send({ type: "tool-calc", id: toolId, action: "angle", angle });
+  },
+  calcClearHistory(toolId: string) {
+    send({ type: "tool-calc", id: toolId, action: "clear-history" });
   },
 
   /** A reaction over one of the room's media (`target` — see toolMediaKey and the tiles' mediaKey). */

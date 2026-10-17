@@ -116,6 +116,13 @@ const DEVELOPERS_ORIGIN = (
   process.env.DEVELOPERS_ORIGIN || "https://golive-developers.nemtudo.me"
 ).replace(/\/+$/, "");
 
+// Same arrangement for the events app (sharescreen-events, basePath "/events"):
+// /events/* is a separate deploy, so an event — three.js, a game loop — never
+// ships a byte to the rest of the site. Server-side only, read at build time.
+const EVENTS_ORIGIN = (
+  process.env.EVENTS_ORIGIN || "https://golive-events.nemtudo.me"
+).replace(/\/+$/, "");
+
 const nextConfig: NextConfig = {
   ...(STABLE_BUILD_ID
     ? {
@@ -166,6 +173,16 @@ const nextConfig: NextConfig = {
       {
         source: "/developers/:path*",
         destination: `${DEVELOPERS_ORIGIN}/developers/:path*`,
+      },
+      // The events (sharescreen-events). Same origin for the same reason as
+      // the portal: a signed-in person enters an event already signed in.
+      {
+        source: "/events",
+        destination: `${EVENTS_ORIGIN}/events`,
+      },
+      {
+        source: "/events/:path*",
+        destination: `${EVENTS_ORIGIN}/events/:path*`,
       },
       // OpenID Connect discovery. This site is the issuer (see app/api/
       // oidc-configuration), and the specification requires the document to

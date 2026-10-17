@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  MdCalculate,
   MdChecklist,
   MdCode,
   MdDescription,
@@ -24,4 +25,5 @@ export const TOOL_ICONS: Record<ToolKind, ReactNode> = {
   sheet: <MdTableChart />,
   doc: <MdDescription />,
   wheel: <PiSpinnerBallBold />,
+  calc: <MdCalculate />,
 };
