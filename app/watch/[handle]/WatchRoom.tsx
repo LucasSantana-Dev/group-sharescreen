@@ -5033,6 +5033,7 @@ function WatchRoomView({
           mediaKey={state.selfId ? `screen:${state.selfId}` : undefined}
           stream={localStream}
           beingRecorded={recordedChannels.has("screen")}
+          ownStatsChannel="screen"
           // Our own capture keeps running whether or not this preview is on
           // screen, so releasing it would cost a black tile on the way back and
           // save nothing on the machine that matters.
@@ -5088,6 +5089,7 @@ function WatchRoomView({
           tileId={id}
           mediaKey={state.selfId ? `camera2:${state.selfId}` : undefined}
           stream={stream}
+          ownStatsChannel="camera2"
           detachWhenHidden={false}
           label={label}
           accessibleLabel={label}
@@ -5132,6 +5134,7 @@ function WatchRoomView({
           tileId={id}
           mediaKey={state.selfId ? `screen-extra:${slot}:${state.selfId}` : undefined}
           stream={stream}
+          ownStatsChannel={slot}
           detachWhenHidden={false}
           label={label}
           accessibleLabel={label}
@@ -5182,6 +5185,7 @@ function WatchRoomView({
           tileId={id}
           mediaKey={state.selfId ? `camera:${state.selfId}` : undefined}
           stream={localCameraStream}
+          ownStatsChannel="camera"
           mirrored={mirrorOwnCamera}
           orientation={myOrientations["camera"] ?? null}
           onOrientationChange={(next) => setMyOrientation("camera", next)}
@@ -5238,6 +5242,7 @@ function WatchRoomView({
           mediaKey={state.selfId ? `file:${slot}:${state.selfId}` : undefined}
           stream={stream}
           beingRecorded={recordedChannels.has(slot)}
+          ownStatsChannel={slot}
           label={name}
           accessibleLabel={name}
           badge={translate("watch.watchRoom.youAdded")}

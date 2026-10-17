@@ -46,6 +46,7 @@ import { TILE_EXPERIMENT_EVENTS, trackTileExperiment, useTileExperiment } from "
 import { announceRecording } from "@/lib/recordingNotice";
 import { registerTileCommands } from "@/lib/tileCommands";
 import { ConnectionStatsOverlay } from "@/components/ConnectionStatsOverlay";
+import { OwnStreamStatsOverlay } from "@/components/OwnStreamStatsOverlay";
 import type { QualityChannel } from "@/lib/qualityNegotiation";
 import { VolumeSlider } from "@/components/VolumeSlider";
 import { Tooltip, Popover } from "@/components/Tooltip";
@@ -133,6 +134,7 @@ const VideoTileView = memo(function VideoTileView({
   transport,
   onTogglePlay,
   connectionStats,
+  ownStatsChannel,
   badgeClassName = "bg-red-500/90",
   clippable = true,
   beingRecorded = false,
@@ -254,6 +256,9 @@ const VideoTileView = memo(function VideoTileView({
   // conexão" panel (see ConnectionStatsOverlay). Only passed for a remote
   // peer's live transmission — there is no connection behind a local preview.
   connectionStats?: { channel: QualityChannel; originId: string };
+  // The same button on our own tile, opening "Sua transmissão" instead: the
+  // sending side of this channel (see OwnStreamStatsOverlay).
+  ownStatsChannel?: QualityChannel;
   // The badge's colour. Red by default, which reads as "live" — a video
   // source is not live in that sense and says so in its own colour.
   badgeClassName?: string;
@@ -970,22 +975,29 @@ const VideoTileView = memo(function VideoTileView({
           onClose={() => setStatsOpen(false)}
         />
       )}
+      {ownStatsChannel && statsOpen && !compact && (
+        <OwnStreamStatsOverlay
+          channel={ownStatsChannel}
+          stream={stream}
+          onClose={() => setStatsOpen(false)}
+        />
+      )}
       {/* The left-hand cluster: things about the transmission rather than
           about watching it — its connection, and taking it out to OBS. Same
           reveal rules as the right-hand cluster below. */}
-      {(connectionStats || onObsSource) && (
+      {(connectionStats || ownStatsChannel || onObsSource) && (
         <div
           data-tile-controls
           className={`absolute top-2 z-20 flex items-center gap-2 transition-opacity ${
             overlayLeftOffset ? "left-[50px]" : "left-2"
           } ${compact ? "hidden" : ""} ${overlayVisibilityClass}`}
         >
-          {connectionStats && (
-            <Tooltip content={t("connectionStats.open")}>
+          {(connectionStats || ownStatsChannel) && (
+            <Tooltip content={t(ownStatsChannel ? "ownStreamStats.title" : "connectionStats.open")}>
               <button
                 type="button"
                 onClick={() => setStatsOpen((open) => !open)}
-                aria-label={t("connectionStats.open")}
+                aria-label={t(ownStatsChannel ? "ownStreamStats.title" : "connectionStats.open")}
                 aria-pressed={statsOpen}
                 className={`rounded-full p-2 text-white active:bg-black/80 ${
                   statsOpen ? "bg-emerald-600 hover:bg-emerald-700" : "bg-black/60 hover:bg-black/80"
