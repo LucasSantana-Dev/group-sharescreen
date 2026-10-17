@@ -1,7 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { getRoomToolsState, type DrawTool, type SheetTool, type Stroke, type TextTool } from "@/lib/roomTools";
+import { getRoomToolsState, type DrawTool, type SheetTool, type Stroke, type TextTool, type WheelTool } from "@/lib/roomTools";
+import { drawWheel } from "@/lib/wheel";
 import { DEFAULT_COL_WIDTH, cellKey, colName, displayValue, evaluateSheet, isFormulaError } from "@/lib/sheet";
 import { highlightCode, type CodeTokenType } from "@/lib/codeHighlight";
 import { drawStroke, type Rect } from "./strokes";
@@ -371,7 +372,8 @@ export function toolDrawer(toolId: string): Draw {
     ctx.fillStyle = colors.background;
     ctx.fillRect(0, 0, width, height);
     if (!tool) return;
-    if (tool.kind === "sheet") drawSheet(ctx, tool as SheetTool, width, height, colors);
+    if (tool.kind === "wheel") drawWheel(ctx, tool as WheelTool, width, height, colors.text);
+    else if (tool.kind === "sheet") drawSheet(ctx, tool as SheetTool, width, height, colors);
     else if (tool.kind === "doc") drawDoc(ctx, (tool as TextTool).text, width, height, colors);
     else if (tool.kind === "notepad") drawWrappedText(ctx, (tool as TextTool).text, width, height, colors);
     else if (tool.kind === "code") drawCode(ctx, (tool as TextTool).text, (tool as TextTool).language, width, height, colors);

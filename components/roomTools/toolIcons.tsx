@@ -10,6 +10,7 @@ import {
   MdPoll,
   MdTableChart,
 } from "react-icons/md";
+import { PiSpinnerBallBold } from "react-icons/pi";
 import type { ToolKind } from "@/lib/roomTools";
 
 export const TOOL_ICONS: Record<ToolKind, ReactNode> = {
@@ -22,4 +23,5 @@ export const TOOL_ICONS: Record<ToolKind, ReactNode> = {
   tasks: <MdChecklist />,
   sheet: <MdTableChart />,
   doc: <MdDescription />,
+  wheel: <PiSpinnerBallBold />,
 };

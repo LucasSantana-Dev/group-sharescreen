@@ -14,6 +14,8 @@ import { BetaMark } from "@/components/BetaMark";
 import {
   CODE_LANGUAGES,
   DEFAULT_TASK_RULES,
+  DEFAULT_WHEEL_SETTINGS,
+  type WheelSettings,
   MEDIA_KINDS,
   OFFICE_KINDS,
   PANEL_KINDS,
@@ -37,6 +39,7 @@ import { signalingClient } from "@/lib/signalingClient";
 import { useT } from "@/lib/useI18n";
 import { TOOL_ICONS } from "./toolIcons";
 import { AnnotateView, PollView, TasksView } from "./ToolViews";
+import { WheelPresets, WheelSettingsFields, splitEntries } from "./WheelView";
 
 export { TOOL_ICONS };
 
@@ -450,6 +453,8 @@ export function CreateToolForm({
   const [announce, setAnnounce] = useState(true);
   const [duration, setDuration] = useState<number | null>(null);
   const [rules, setRules] = useState<TaskRules>(DEFAULT_TASK_RULES);
+  const [wheelText, setWheelText] = useState("");
+  const [wheelSettings, setWheelSettings] = useState<WheelSettings>(DEFAULT_WHEEL_SETTINGS);
 
   const pollReady = question.trim() && options.filter((o) => o.trim()).length >= 2;
   const ready = kind !== "poll" || pollReady;
@@ -466,6 +471,9 @@ export function CreateToolForm({
           allowed,
           ...(kind === "code" ? { language } : {}),
           ...(kind === "tasks" ? { rules } : {}),
+          ...(kind === "wheel"
+            ? { entries: splitEntries(wheelText.includes("\n") ? wheelText : `${wheelText}\n`).map((text) => ({ text })), wheelSettings }
+            : {}),
           ...(kind === "poll"
             ? { poll: { question: question.trim(), options: options.map((o) => o.trim()).filter(Boolean), multi, anonymous, announce, durationMinutes: duration } }
             : {}),
@@ -572,6 +580,23 @@ export function CreateToolForm({
       )}
       {kind === "tasks" && (
         <TaskRulesFields rules={rules} setRules={setRules} />
+      )}
+      {kind === "wheel" && (
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            {t("roomTools.wheel.entries")}
+            <textarea
+              value={wheelText}
+              rows={6}
+              onChange={(e) => setWheelText(e.target.value)}
+              placeholder={t("roomTools.wheel.bulkPlaceholder")}
+              className={`${inputClass} resize-y`}
+            />
+            <span className="text-[11px] font-normal text-zinc-500">{t("roomTools.wheel.entriesHint")}</span>
+          </label>
+          <WheelPresets onPick={(entries) => setWheelText(entries.join("\n"))} />
+          <WheelSettingsFields settings={wheelSettings} onChange={(changes) => setWheelSettings({ ...wheelSettings, ...changes })} />
+        </div>
       )}
       <AccessEditor
         access={access}

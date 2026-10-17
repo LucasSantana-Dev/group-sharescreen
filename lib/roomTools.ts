@@ -25,7 +25,7 @@ import { applySheetChange, changeIsIdempotent, type SheetChange, type SheetData 
 // stroke or a keystroke in the notepad arrives many times a second, and none
 // of that is any business of the sixty other things that state carries.
 
-export type ToolKind = "whiteboard" | "notepad" | "annotate" | "poll" | "reactions" | "code" | "tasks" | "sheet" | "doc";
+export type ToolKind = "whiteboard" | "notepad" | "annotate" | "poll" | "reactions" | "code" | "tasks" | "sheet" | "doc" | "wheel";
 export type ToolAccess = "everyone" | "managers" | "selected";
 export type StrokeShape = "pen" | "highlighter" | "line" | "arrow" | "rect" | "ellipse" | "text" | "image";
 
@@ -61,6 +61,9 @@ export const ROOM_TOOLS_EVENTS = {
   // of the room as a file.
   imagePaste: "room_tools_image_paste",
   export: "room_tools_export",
+  // The wheel: a spin, and a preset that filled its list.
+  wheelSpin: "room_tools_wheel_spin",
+  wheelPreset: "room_tools_wheel_preset",
 } as const;
 
 export function trackRoomToolsEvent(name: string) {
@@ -77,11 +80,11 @@ function trackFirstUse(toolId: string, name: string) {
 }
 
 /** What the tools panel offers to open, in order. Polls open from the chat's "+". */
-export const PANEL_KINDS: ToolKind[] = ["whiteboard", "notepad", "code", "sheet", "doc", "tasks", "annotate"];
+export const PANEL_KINDS: ToolKind[] = ["whiteboard", "notepad", "code", "sheet", "doc", "tasks", "wheel", "annotate"];
 /** The panel's kinds that only the office experiment shows (see ROOM_TOOLS_OFFICE_FEATURE). */
 export const OFFICE_KINDS: ToolKind[] = ["sheet", "doc"];
 /** The kinds that are a tile in the room's grid. */
-export const MEDIA_KINDS: ToolKind[] = ["whiteboard", "notepad", "code", "sheet", "doc"];
+export const MEDIA_KINDS: ToolKind[] = ["whiteboard", "notepad", "code", "sheet", "doc", "wheel"];
 /** The kinds edited as one shared text (see lib/textSync.ts). A document's text is its HTML. */
 export const TEXT_KINDS: ToolKind[] = ["notepad", "code", "doc"];
 function isTextTool(tool: RoomTool): tool is TextTool {
@@ -101,6 +104,7 @@ export const TOOL_FEATURES: Record<ToolKind, Feature> = {
   annotate: "room_tools_draw",
   sheet: "room_tools_text",
   doc: "room_tools_text",
+  wheel: "room_tools_basic",
 };
 
 /** Whether an account with `features` may open a tool of this kind. The free kinds need nothing. */
@@ -222,7 +226,65 @@ export function taskProgress(tool: TasksTool): number {
   return Math.round((tool.items.filter((i) => i.done).length / tool.items.length) * 100);
 }
 export type ReactionsTool = ToolBase & { kind: "reactions" };
-export type RoomTool = DrawTool | TextTool | PollTool | TasksTool | ReactionsTool | SheetTool;
+
+// The wheel — the mirror of the API's WheelTool. The server draws the winner
+// and where the wheel stops; every client animates the same turn.
+export type WheelEntry = { id: string; text: string; color: string; weight: number };
+export type WheelSpin = {
+  id: string;
+  winnerId: string;
+  winnerText: string;
+  byName: string;
+  startedAt: number;
+  duration: number;
+  from: number;
+  to: number;
+  entries: WheelEntry[];
+  // How far into it the server was when it sent this (see wheelSpinStart).
+  elapsed: number;
+};
+export type WheelResult = { id: string; spinId: string; text: string; color: string; byName: string; at: number };
+export type WheelSettings = {
+  removeWinner: boolean;
+  announce: boolean;
+  duration: number;
+  spin: "everyone" | "managers";
+  edit: "everyone" | "managers";
+};
+export type WheelTool = ToolBase & {
+  kind: "wheel";
+  entries: WheelEntry[];
+  spin: WheelSpin | null;
+  history: WheelResult[];
+  settings: WheelSettings;
+};
+export const WHEEL_DURATIONS = [3, 5, 8, 12, 20];
+export const MAX_WHEEL_ENTRIES = 100;
+export const MAX_WHEEL_WEIGHT = 10;
+export const DEFAULT_WHEEL_SETTINGS: WheelSettings = {
+  removeWinner: false,
+  announce: true,
+  duration: 5,
+  spin: "everyone",
+  edit: "managers",
+};
+
+// When each spin started by this client's clock: the server says how far in
+// it was when it sent the spin, and the first time this client sees a spin is
+// what it times the rest from — so a late joiner lands mid-turn, not at the start.
+const wheelSpinStarts = new Map<string, number>();
+
+/** When `spin` started, by this client's clock. */
+export function wheelSpinStart(spin: WheelSpin): number {
+  let start = wheelSpinStarts.get(spin.id);
+  if (start === undefined) {
+    start = performance.now() - (spin.elapsed ?? 0);
+    wheelSpinStarts.set(spin.id, start);
+  }
+  return start;
+}
+
+export type RoomTool = DrawTool | TextTool | PollTool | TasksTool | ReactionsTool | SheetTool | WheelTool;
 
 export type RaisedHand = { id: string; name: string; at: number };
 /** Somebody else's stroke while they are still drawing it (see "tool-stroke-live"). */
@@ -471,6 +533,7 @@ function handleMessage(msg: Record<string, unknown>) {
       textSync.clear();
       for (const tool of tools) {
         if (isTextTool(tool)) startSync(tool);
+        if (tool.kind === "wheel" && tool.spin) wheelSpinStart(tool.spin);
       }
       setState({
         tools,
@@ -485,6 +548,7 @@ function handleMessage(msg: Record<string, unknown>) {
       const tool = msg.tool as RoomTool | undefined;
       if (!tool?.id) break;
       const isNew = !state.tools.some((t) => t.id === tool.id);
+      if (tool.kind === "wheel" && tool.spin) wheelSpinStart(tool.spin);
       if (isTextTool(tool)) {
         const sync = textSync.get(tool.id);
         if (!sync) {
@@ -725,6 +789,9 @@ export const roomTools = {
         durationMinutes: number | null;
       };
       rules?: TaskRules;
+      // The wheel's first entries and its settings.
+      entries?: { text: string }[];
+      wheelSettings?: WheelSettings;
       // A poll while another runs: end that one (result posted) and open this.
       replace?: boolean;
     } = {}
@@ -862,6 +929,27 @@ export const roomTools = {
   },
   setTaskRules(toolId: string, rules: TaskRules) {
     send({ type: "tool-task", id: toolId, action: "rules", rules });
+  },
+
+  // --- The wheel (see the API's "tool-wheel") ---
+  wheelAdd(toolId: string, entries: { text: string; color?: string; weight?: number }[], replace = false) {
+    if (entries.length > 0 || replace) send({ type: "tool-wheel", id: toolId, action: "add", entries, replace });
+  },
+  wheelEdit(toolId: string, entryId: string, changes: { text?: string; color?: string; weight?: number }) {
+    send({ type: "tool-wheel", id: toolId, action: "edit", entryId, ...changes });
+  },
+  wheelRemove(toolId: string, entryId: string) {
+    send({ type: "tool-wheel", id: toolId, action: "remove", entryId });
+  },
+  wheelArrange(toolId: string, action: "shuffle" | "sort" | "clear" | "clear-history") {
+    send({ type: "tool-wheel", id: toolId, action });
+  },
+  wheelSettings(toolId: string, settings: Partial<WheelSettings>) {
+    send({ type: "tool-wheel", id: toolId, action: "settings", settings });
+  },
+  wheelSpin(toolId: string) {
+    send({ type: "tool-wheel", id: toolId, action: "spin" });
+    trackRoomToolsEvent(ROOM_TOOLS_EVENTS.wheelSpin);
   },
 
   /** A reaction over one of the room's media (`target` — see toolMediaKey and the tiles' mediaKey). */

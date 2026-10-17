@@ -15,6 +15,7 @@ import {
   type SheetTool,
   type RoomToolsState,
   type TextTool,
+  type WheelTool,
 } from "@/lib/roomTools";
 import { useT } from "@/lib/useI18n";
 import { RoomToolsViewer } from "./AnnotationLayer";
@@ -23,6 +24,7 @@ import { TOOL_ICONS } from "./toolIcons";
 import { DocView } from "./DocView";
 import { SheetView } from "./SheetView";
 import { TextToolView, WhiteboardView } from "./ToolViews";
+import { WheelView } from "./WheelView";
 import { openCanvasPip, toolDrawer, useCanvasPipSupported } from "./canvasPip";
 
 // The whiteboard, the notepad and the code editor as media: a tile in the
@@ -44,7 +46,7 @@ export function ToolMediaTile({
   onLeave,
   interactive = true,
 }: {
-  tool: DrawTool | TextTool | SheetTool;
+  tool: DrawTool | TextTool | SheetTool | WheelTool;
   selfUserId: string | null;
   isManager: boolean;
   fill?: boolean;
@@ -284,7 +286,9 @@ export function ToolMediaTile({
         </span>
       </div>
       <div className="relative min-h-0 flex-1 bg-white p-1.5 sm:p-2 dark:bg-zinc-900">
-        {tool.kind === "sheet" ? (
+        {tool.kind === "wheel" ? (
+          <WheelView tool={tool} isManager={isManager} canUse={canUse} />
+        ) : tool.kind === "sheet" ? (
           <SheetView tool={tool} canUse={canUse} />
         ) : tool.kind === "doc" ? (
           <DocView tool={tool} canUse={canUse} />
@@ -310,7 +314,8 @@ export function ToolMediaTileById({
 }: Omit<Parameters<typeof ToolMediaTile>[0], "tool"> & { toolId: string }) {
   const select = useCallback(
     (s: RoomToolsState) =>
-      s.tools.find((t): t is DrawTool | TextTool | SheetTool => t.id === toolId && MEDIA_KINDS.includes(t.kind)) ?? null,
+      s.tools.find((t): t is DrawTool | TextTool | SheetTool | WheelTool => t.id === toolId && MEDIA_KINDS.includes(t.kind)) ??
+      null,
     [toolId]
   );
   const tool = useRoomToolsSelector(select);
