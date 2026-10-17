@@ -782,7 +782,8 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export type WorkshopSort = "popular" | "liked" | "recent";
+/** "trending" is the scored "Em alta" ordering, behind the theme-trending experiment. */
+export type WorkshopSort = "popular" | "liked" | "recent" | "trending";
 
 /** The workshop grid. No account needed — it is a shop window. */
 export async function fetchWorkshop(

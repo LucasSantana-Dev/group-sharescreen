@@ -36,6 +36,7 @@ import {
   type WorkshopPrice,
   type WorkshopSort,
 } from "@/lib/roomThemes";
+import { THEME_TRENDING_EVENTS, WORKSHOP_SORT_LABELS, trackThemeShopEvent, useWorkshopSorts } from "@/lib/themeTrending";
 import { endThemePreview, startThemePreview, useThemeChoice, type ThemeTarget } from "@/lib/themeChoice";
 import { useT } from "@/lib/useI18n";
 
@@ -54,12 +55,6 @@ import { useT } from "@/lib/useI18n";
 type Scope = "discover" | "mine";
 
 const PAGE_SIZE = 24;
-
-const SORTS: { id: WorkshopSort; key: string }[] = [
-  { id: "popular", key: "workshop.workshopPanel.mostUsed" },
-  { id: "liked", key: "workshop.workshopPanel.mostLiked" },
-  { id: "recent", key: "workshop.workshopPanel.recent" },
-];
 
 const PRICES: { id: WorkshopPrice; key: string }[] = [
   { id: "all", key: "themeBrowser.priceAll" },
@@ -135,7 +130,12 @@ export function ThemeBrowser({
   const [scope, setScope] = useState<Scope>(initial?.scope ?? "discover");
   const [query, setQuery] = useState(initial?.query ?? "");
   const [debounced, setDebounced] = useState(initial?.query ?? "");
-  const [sort, setSort] = useState<WorkshopSort>(initial?.sort ?? "popular");
+  // Null until somebody picks one: the grid then starts on whatever the
+  // theme-trending experiment says is first (see lib/themeTrending).
+  const [chosenSort, setChosenSort] = useState<WorkshopSort | null>(initial?.sort ?? null);
+  const workshopSorts = useWorkshopSorts(scope === "discover");
+  const sort = chosenSort ?? workshopSorts.defaultSort;
+  const sortReady = chosenSort !== null || workshopSorts.ready;
   const [price, setPrice] = useState<WorkshopPrice>(initial?.price ?? "all");
   const [page, setPage] = useState<Page | null>(initial?.page ?? null);
   const [attempt, setAttempt] = useState(0);
@@ -212,7 +212,7 @@ export function ThemeBrowser({
   // while the workshop is the tab on screen, and not again for a page already
   // in hand (switching tabs, coming back from a preview).
   useEffect(() => {
-    if (scope !== "discover") return;
+    if (scope !== "discover" || !sortReady) return;
     if (loadedKeyRef.current === key) return;
     const controller = new AbortController();
     void fetchWorkshopPage({ sort, price, query: debounced, limit: PAGE_SIZE }, controller.signal).then(
@@ -223,7 +223,7 @@ export function ThemeBrowser({
       }
     );
     return () => controller.abort();
-  }, [scope, key, sort, price, debounced, attempt]);
+  }, [scope, sortReady, key, sort, price, debounced, attempt]);
 
   // Yours: the ones you made (private ones included) and the ones you bought.
   useEffect(() => {
@@ -368,6 +368,7 @@ export function ThemeBrowser({
       }
       setConfirmBuyId(null);
       if (await run(theme.id, () => buy(theme))) {
+        if (scope === "discover") trackThemeShopEvent(THEME_TRENDING_EVENTS.buy);
         patchTheme(theme.id, { owned: true });
         setMine((prev) =>
           prev.owned.some((own) => own.id === theme.id)
@@ -378,11 +379,16 @@ export function ThemeBrowser({
       return;
     }
     if (target.kind === "self") {
-      await run(theme.id, () => choose(current === theme.id ? null : theme.id));
+      const next = current === theme.id ? null : theme.id;
+      const ok = await run(theme.id, () => choose(next));
+      if (ok && next && scope === "discover") trackThemeShopEvent(THEME_TRENDING_EVENTS.apply);
       return;
     }
     if (current === theme.id) return;
-    if (await run(theme.id, () => choose(theme.id))) onClose(true);
+    if (await run(theme.id, () => choose(theme.id))) {
+      if (scope === "discover") trackThemeShopEvent(THEME_TRENDING_EVENTS.apply);
+      onClose(true);
+    }
   }
 
   async function removeCurrent() {
@@ -399,6 +405,7 @@ export function ThemeBrowser({
     const liked = !theme.liked;
     patchTheme(theme.id, { liked, likes: Math.max(0, theme.likes + (liked ? 1 : -1)) });
     const result = await likeTheme(theme.id, liked);
+    if (result && liked && scope === "discover") trackThemeShopEvent(THEME_TRENDING_EVENTS.like);
     patchTheme(theme.id, result ?? { liked: theme.liked, likes: theme.likes });
   }
 
@@ -483,13 +490,17 @@ export function ThemeBrowser({
             {scope === "discover" && (
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as WorkshopSort)}
+                onChange={(e) => {
+                  const next = e.target.value as WorkshopSort;
+                  if (next === "trending") trackThemeShopEvent(THEME_TRENDING_EVENTS.pick);
+                  setChosenSort(next);
+                }}
                 aria-label={t("themeBrowser.sortBy")}
                 className="rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-xs font-medium text-zinc-700 outline-none transition focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300"
               >
-                {SORTS.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {t(entry.key)}
+                {workshopSorts.sorts.map((id) => (
+                  <option key={id} value={id}>
+                    {t(WORKSHOP_SORT_LABELS[id])}
                   </option>
                 ))}
               </select>

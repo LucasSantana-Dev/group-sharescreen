@@ -45,8 +45,8 @@ import {
   type RoomTheme,
   type WorkshopSort,
 } from "@/lib/roomThemes";
+import { THEME_TRENDING_EVENTS, WORKSHOP_SORT_LABELS, trackThemeShopEvent, useWorkshopSorts } from "@/lib/themeTrending";
 import { useT } from "@/lib/useI18n";
-import { translate } from "@/lib/i18n";
 import { formatLocale } from "@/lib/i18n";
 
 // The Workshop: everybody's themes, and yours.
@@ -60,12 +60,6 @@ import { formatLocale } from "@/lib/i18n";
 // wearing a look: what it looks like, who made it, how many people are wearing
 // it, and how many liked it. The preview is the palette itself rather than a
 // mock room — the same reasoning as the editor's, written up there.
-
-const SORTS: { id: WorkshopSort; label: string }[] = [
-  { id: "popular", get label() { return translate("workshop.workshopPanel.mostUsed"); } },
-  { id: "liked", get label() { return translate("workshop.workshopPanel.mostLiked"); } },
-  { id: "recent", get label() { return translate("workshop.workshopPanel.recent"); } },
-];
 
 /** The palette, as the swatch strip that stands in for the theme. */
 function ThemePreview({ theme }: { theme: RoomTheme }) {
@@ -342,7 +336,12 @@ export function WorkshopPanel() {
   const { account, refresh } = useAuth();
   const { openPopup } = useNtPopups();
   const router = useRouter();
-  const [sort, setSort] = useState<WorkshopSort>("popular");
+  // Null until somebody picks one: the grid starts on whatever the
+  // theme-trending experiment says is first (see lib/themeTrending).
+  const [chosenSort, setChosenSort] = useState<WorkshopSort | null>(null);
+  const workshopSorts = useWorkshopSorts(true);
+  const sort = chosenSort ?? workshopSorts.defaultSort;
+  const sortReady = chosenSort !== null || workshopSorts.ready;
   const [themes, setThemes] = useState<RoomTheme[]>([]);
   const [mine, setMine] = useState<RoomTheme[]>([]);
   const [loading, setLoading] = useState(true);
@@ -379,6 +378,7 @@ export function WorkshopPanel() {
   const canCreate = hasFeature("room_theme", account?.features ?? []) && !banned;
 
   useEffect(() => {
+    if (!sortReady) return;
     const controller = new AbortController();
     void fetchWorkshop(sort, controller.signal).then((loaded) => {
       if (controller.signal.aborted) return;
@@ -386,7 +386,7 @@ export function WorkshopPanel() {
       setLoading(false);
     });
     return () => controller.abort();
-  }, [sort, seq]);
+  }, [sortReady, sort, seq]);
 
   useEffect(() => {
     // Nothing to read for a guest, and nothing to clear either: what is on
@@ -439,6 +439,7 @@ export function WorkshopPanel() {
     setBusyId(theme.id);
     const result = await buyTheme(theme.id);
     if (result.ok) {
+      trackThemeShopEvent(THEME_TRENDING_EVENTS.buy);
       // The points moved and so did ownership, both on the server. Re-read
       // rather than patched — a card that guesses at a balance is a card that
       // will eventually be wrong about one.
@@ -469,6 +470,7 @@ export function WorkshopPanel() {
       setWornOverride(undefined);
       return;
     }
+    if (next) trackThemeShopEvent(THEME_TRENDING_EVENTS.apply);
     // The account holds the choice and the counters moved, so both are re-read
     // — but nothing on screen is waiting for either.
     await refresh();
@@ -498,6 +500,7 @@ export function WorkshopPanel() {
     // The server's count, which is the one that includes everybody else's
     // presses since this page loaded — or the state from before, if it refused.
     const settled = result ?? { liked: theme.liked, likes: theme.likes };
+    if (result && liked) trackThemeShopEvent(THEME_TRENDING_EVENTS.like);
     setThemes(patch(settled));
     setMine(patch(settled));
   }
@@ -571,19 +574,22 @@ export function WorkshopPanel() {
             {t("common.fromTheCommunity")}
           </h2>
           <div className="inline-flex rounded-xl border border-zinc-200 p-1 dark:border-zinc-800">
-            {SORTS.map((entry) => (
+            {workshopSorts.sorts.map((id) => (
               <button
-                key={entry.id}
+                key={id}
                 type="button"
-                onClick={() => setSort(entry.id)}
-                aria-pressed={sort === entry.id}
+                onClick={() => {
+                  if (id === "trending" && sort !== "trending") trackThemeShopEvent(THEME_TRENDING_EVENTS.pick);
+                  setChosenSort(id);
+                }}
+                aria-pressed={sort === id}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                  sort === entry.id
+                  sort === id
                     ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                     : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                 }`}
               >
-                {entry.label}
+                {t(WORKSHOP_SORT_LABELS[id])}
               </button>
             ))}
           </div>

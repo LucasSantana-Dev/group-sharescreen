@@ -1514,7 +1514,8 @@
   "connectionStats.software": "software",
   "connectionStats.title": "Connection stats",
   "connectionStats.viaCascade": "arrives relayed by another participant",
-  "connectionStats.waiting": "waiting…",
+  "connectionStats.waiting": "waiting…",
+
   "ownStreamStats.title": "Your stream",
   "ownStreamStats.capture": "Capturing",
   "ownStreamStats.sending": "Sending",
@@ -3610,6 +3611,7 @@
   "workshop.workshopPanel.discoverThemes": "Discover themes",
   "workshop.workshopPanel.mostLiked": "Most liked",
   "workshop.workshopPanel.mostUsed": "Most used",
+  "workshop.workshopPanel.trending": "Trending",
   "workshop.workshopPanel.opensARoomSoYouCan": "Opens a room so you can see the theme while you build it",
   "workshop.workshopPanel.publishingOnDiscoverIsProMax": ". Publishing on Discover is Pro Max.",
   "workshop.workshopPanel.recent": "Recent",
