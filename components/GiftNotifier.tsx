@@ -55,8 +55,9 @@ export function GiftNotifier() {
       id: `gift:${lastGift.giftId}`,
       kind: "gift",
       title: translate("giftNotifier.youGotAPlan"),
-      body:
-        lastGift.days > 0
+      body: lastGift.hours
+        ? `${lastGift.planTitle} por ${lastGift.hours}h, de presente.`
+        : lastGift.days > 0
           ? `${lastGift.planTitle} por ${lastGift.days} dias, de presente.`
           : `${lastGift.planTitle}, de presente.`,
       href: "/pro",
@@ -92,8 +93,9 @@ export function GiftNotifier() {
       id: `gift-redeemed:${lastGiftRedeemed.giftId}`,
       kind: "gift",
       title: `${lastGiftRedeemed.byName} resgatou seu presente!`,
-      body:
-        lastGiftRedeemed.days > 0
+      body: lastGiftRedeemed.hours
+        ? `${lastGiftRedeemed.planTitle} por ${lastGiftRedeemed.hours}h.`
+        : lastGiftRedeemed.days > 0
           ? `${lastGiftRedeemed.planTitle} por ${lastGiftRedeemed.days} dias.`
           : lastGiftRedeemed.planTitle,
       userId: lastGiftRedeemed.byId ?? undefined,

@@ -34,7 +34,7 @@ const API_BASE = (process.env.NEXT_PUBLIC_SIGNALING_URL || "ws://localhost:4000/
   .replace(/^ws/, "http")
   .replace(/\/ws\/?$/, "");
 
-type GiftCard = { planTitle: string; days: number; fromName: string | null };
+type GiftCard = { planTitle: string; days: number; hours: number; fromName: string | null };
 
 /**
  * What is behind the code, for the card alone.
@@ -56,11 +56,13 @@ async function loadGift(code: string): Promise<GiftCard | null> {
     const data = (await res.json()) as {
       planTitle?: string;
       days?: number;
+      hours?: number;
       from?: { displayName?: string } | null;
     };
     return {
       planTitle: data.planTitle ?? translate("common.golivePro"),
       days: typeof data.days === "number" ? data.days : 0,
+      hours: typeof data.hours === "number" ? data.hours : 0,
       fromName: data.from?.displayName ?? null,
     };
   } catch {
@@ -78,7 +80,7 @@ export async function generateMetadata(
   // land as a present rather than as an advertisement.
   const subtitle = gift
     ? `${gift.fromName ? `${gift.fromName} te deu` : translate("gift.someoneGaveYou")} ${
-        gift.days > 0 ? `${gift.days} dias de ` : ""
+        gift.hours > 0 ? `${gift.hours}h de ` : gift.days > 0 ? `${gift.days} dias de ` : ""
       }${gift.planTitle}.`
     : translate("gift.openTheLinkToSeeWhat");
 

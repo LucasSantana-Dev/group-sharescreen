@@ -10,7 +10,7 @@ import {
 } from "@/lib/adminApi";
 import { downloadGiftCard, downloadGiftCardsPdf } from "@/lib/giftCardImage";
 import { useI18n } from "@/lib/useI18n";
-import { fromDateInput, GiftListPanel } from "./GiftListPanel";
+import { fromDateInput, giftDurationLabel, GiftListPanel } from "./GiftListPanel";
 
 // Minting a gift link nobody paid for.
 //
@@ -35,6 +35,11 @@ import { fromDateInput, GiftListPanel } from "./GiftListPanel";
 const DEFAULT_DAYS = 30;
 /** The same handful "Conceder plano" offers, so the two read as one idea. */
 const DAY_PRESETS = [7, 15, 30, 90, 365];
+/** The same idea for a gift measured in hours. */
+const HOUR_PRESETS = [1, 2, 5, 12, 24, 48];
+const DEFAULT_HOURS = 5;
+/** What the API caps an hourly gift at (a month of hours). */
+const MAX_HOURS = 720;
 
 function giftLink(code: string): string {
   if (typeof window === "undefined") return `/gift/${code}`;
@@ -74,8 +79,9 @@ function GiftRow({ gift }: { gift: AdminGift }) {
   return (
     <li className="flex flex-col gap-1.5 rounded-lg border border-zinc-200 p-2.5 dark:border-zinc-800">
       <span className="text-xs text-zinc-500 dark:text-zinc-400">
-        {gift.planTitle} · {tc("common.dayCount", gift.days)}
+        {gift.planTitle} · {giftDurationLabel(gift, tc)}
         {gift.trialOnly ? ` · ${t("admin.giftPanel.trialBadge")}` : ""}
+        {gift.testGift ? ` · ${t("admin.giftPanel.testBadge")}` : ""}
       </span>
       <div className="flex items-center gap-2">
         {/* Selectable and wrapped rather than truncated: if the clipboard is
@@ -104,11 +110,24 @@ function GiftRow({ gift }: { gift: AdminGift }) {
   );
 }
 
-export function GiftPanel() {
+// Two permissions meet here: `gifts` draws the whole form, `test_gifts` only
+// the "gift de experimentar" button (2h, once per account — the API fixes
+// both, whatever is on screen). An admin with only the second sees the plan
+// picker and that button.
+export function GiftPanel({
+  canGifts = true,
+  canTestGifts = true,
+}: {
+  canGifts?: boolean;
+  canTestGifts?: boolean;
+}) {
   const { t, tc } = useI18n();
   const [plans, setPlans] = useState<AdminPlanOption[]>([]);
   const [planId, setPlanId] = useState("");
   const [days, setDays] = useState(DEFAULT_DAYS);
+  // Days or hours: a prize is a month, a taste is an afternoon.
+  const [unit, setUnit] = useState<"days" | "hours">("days");
+  const [hours, setHours] = useState(DEFAULT_HOURS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Newest first: the one just made is the one being copied.
@@ -153,15 +172,26 @@ export function GiftPanel() {
     };
   }, [t]);
 
-  async function handleGenerate() {
-    if (!planId || busy || days < 1) return;
+  const amount = unit === "hours" ? hours : days;
+  const amountValid = unit === "hours" ? hours >= 1 && hours <= MAX_HOURS : days >= 1;
+
+  async function handleGenerate(testGift = false) {
+    if (!planId || busy || (!testGift && !amountValid)) return;
     setBusy(true);
     setError(null);
     try {
-      const gift = await createAdminGift(planId, days, fromDateInput(expiry), {
-        allowedUsernames: parseUsernameList(allowed),
-        blockedUsernames: parseUsernameList(blocked),
-      }, trialOnly);
+      const gift = await createAdminGift(
+        planId,
+        // Ignored by the API for a test gift, which is always 2h.
+        unit === "hours" || testGift ? { hours: testGift ? 2 : hours } : { days },
+        fromDateInput(expiry),
+        {
+          allowedUsernames: parseUsernameList(allowed),
+          blockedUsernames: parseUsernameList(blocked),
+        },
+        testGift ? false : trialOnly && unit === "days",
+        testGift
+      );
       setMinted((current) => [gift, ...current]);
       setListKey((k) => k + 1);
     } catch (err) {
@@ -179,7 +209,7 @@ export function GiftPanel() {
     <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
       <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{t("admin.giftPanel.generateGift")}</h2>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-        {t("admin.giftPanel.createsAGiftLinkWithNo")}
+        {canGifts ? t("admin.giftPanel.createsAGiftLinkWithNo") : t("admin.giftPanel.testOnlyIntro")}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-3">
@@ -204,6 +234,7 @@ export function GiftPanel() {
           </select>
         </div>
 
+        {canGifts && (
         <div className="min-w-40 flex-1">
           <label
             htmlFor="gift-days"
@@ -214,20 +245,24 @@ export function GiftPanel() {
           {/* The preset and the number are one control in two halves, exactly
               as in "Conceder plano": the list is what is picked nine times out
               of ten, and the box beside it is the tenth without a mode to
-              switch into. */}
+              switch into. The unit picker beside them switches the whole
+              control between days and hours. */}
           <div className="flex gap-2">
             <select
               id="gift-days"
-              value={DAY_PRESETS.includes(days) ? String(days) : "custom"}
+              value={
+                (unit === "hours" ? HOUR_PRESETS : DAY_PRESETS).includes(amount) ? String(amount) : "custom"
+              }
               onChange={(e) => {
                 if (e.target.value === "custom") return;
-                setDays(Number(e.target.value));
+                if (unit === "hours") setHours(Number(e.target.value));
+                else setDays(Number(e.target.value));
               }}
               className={inputClass}
             >
-              {DAY_PRESETS.map((preset) => (
+              {(unit === "hours" ? HOUR_PRESETS : DAY_PRESETS).map((preset) => (
                 <option key={preset} value={preset}>
-                  {tc("common.dayCount", preset)}
+                  {tc(unit === "hours" ? "common.hourCount" : "common.dayCount", preset)}
                 </option>
               ))}
               <option value="custom">{t("common.other")}</option>
@@ -235,14 +270,27 @@ export function GiftPanel() {
             <input
               type="number"
               min={1}
-              max={3650}
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-              aria-label={t("common.days")}
-              className={`${inputClass} w-24`}
+              max={unit === "hours" ? MAX_HOURS : 3650}
+              value={amount}
+              onChange={(e) => {
+                if (unit === "hours") setHours(Number(e.target.value));
+                else setDays(Number(e.target.value));
+              }}
+              aria-label={unit === "hours" ? t("admin.giftPanel.hours") : t("common.days")}
+              className={`${inputClass} w-20`}
             />
+            <select
+              value={unit}
+              onChange={(e) => setUnit(e.target.value === "hours" ? "hours" : "days")}
+              aria-label={t("admin.giftPanel.unit")}
+              className={`${inputClass} w-24`}
+            >
+              <option value="days">{t("common.days")}</option>
+              <option value="hours">{t("admin.giftPanel.hours")}</option>
+            </select>
           </div>
         </div>
+        )}
       </div>
 
       <div className="mt-3 flex flex-wrap gap-3">
@@ -272,6 +320,7 @@ export function GiftPanel() {
         </div>
       </div>
 
+      {canGifts && unit === "days" && (
       <label className="mt-3 flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
         <input
           type="checkbox"
@@ -286,6 +335,7 @@ export function GiftPanel() {
           </span>
         </span>
       </label>
+      )}
 
       <div className="mt-3 max-w-xs">
         <label
@@ -304,16 +354,35 @@ export function GiftPanel() {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={!planId || busy || days < 1}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? t("admin.giftPanel.generating") : t("admin.giftPanel.generateLink")}
-        </button>
+        {canGifts && (
+          <button
+            type="button"
+            onClick={() => void handleGenerate()}
+            disabled={!planId || busy || !amountValid}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {busy ? t("admin.giftPanel.generating") : t("admin.giftPanel.generateLink")}
+          </button>
+        )}
+        {canTestGifts && (
+          // Its own button rather than a checkbox on the form above: it is a
+          // different thing with fixed rules (2h, once per account), and it
+          // sits under its own permission.
+          <button
+            type="button"
+            onClick={() => void handleGenerate(true)}
+            disabled={!planId || busy}
+            title={t("admin.giftPanel.testGiftHint")}
+            className="rounded-lg border border-sky-500 px-4 py-2 text-sm font-medium text-sky-700 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-sky-300 dark:hover:bg-sky-950/40"
+          >
+            {t("admin.giftPanel.generateTestGift")}
+          </button>
+        )}
         {error && <span className="text-sm text-red-500">{error}</span>}
       </div>
+      {canTestGifts && (
+        <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">{t("admin.giftPanel.testGiftHint")}</p>
+      )}
 
       {minted.length > 0 && (
         <div className="mt-4 border-t border-zinc-200 pt-3 dark:border-zinc-800">

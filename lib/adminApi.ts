@@ -863,6 +863,39 @@ export async function searchAdminAccounts(
   );
 }
 
+/** One administrator, for the permissions tab (ADMIN_MASTER only). */
+export interface AdminMember {
+  id: string;
+  username: string;
+  displayName: string;
+  flags: string[];
+}
+
+export async function fetchAdmins(): Promise<AdminMember[]> {
+  const data = await adminFetch<{ admins: AdminMember[] }>("/admin/admins");
+  return data.admins;
+}
+
+/**
+ * Sets whether an account is an administrator and what it may do. Rewrites
+ * only ADMIN and the ADMIN_PERM_* flags; returns the stored flags after.
+ */
+export async function setAdminPermissions(
+  userId: string,
+  admin: boolean,
+  permissions: string[]
+): Promise<string[]> {
+  const data = await adminFetch<{ account: { flags: string[] } }>(
+    `/admin/accounts/${encodeURIComponent(userId)}/admin-permissions`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ admin, permissions }),
+    }
+  );
+  return data.account.flags;
+}
+
 /** Replaces an account's flags with exactly this list. */
 export async function setAccountFlags(userId: string, flags: string[]): Promise<string[]> {
   const data = await adminFetch<{ account: { flags: string[] } }>(
@@ -1132,10 +1165,14 @@ export interface AdminGift {
   giftId: string;
   code: string;
   days: number;
+  /** Set when the gift is measured in hours (then `days` is 0). */
+  hours?: number | null;
   planId: string;
   planTitle: string;
   /** Free trial on a Stripe subscription instead of plain days. */
   trialOnly?: boolean;
+  /** A "gift de experimentar": 2h, once per account (TEST_GIFT_REDEEM). */
+  testGift?: boolean;
 }
 
 /**
@@ -1152,17 +1189,21 @@ export interface AdminGiftAccess {
   blockedUsernames?: string[];
 }
 
+/** How long a gift lasts: days, or hours. A test gift ignores it (always 2h). */
+export type AdminGiftDuration = { days: number } | { hours: number };
+
 export async function createAdminGift(
   planId: string,
-  days: number,
+  duration: AdminGiftDuration,
   expiresAt: number | null = null,
   access: AdminGiftAccess = {},
-  trialOnly = false
+  trialOnly = false,
+  testGift = false
 ): Promise<AdminGift> {
   return adminFetch<AdminGift>("/admin/premium/gift", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ planId, days, expiresAt, ...access, trialOnly }),
+    body: JSON.stringify({ planId, ...duration, expiresAt, ...access, trialOnly, testGift }),
   });
 }
 

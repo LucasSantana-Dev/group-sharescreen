@@ -20,6 +20,7 @@ import {
   MdExpandMore,
   MdLock,
 } from "react-icons/md";
+import { isRestrictedAdminFlag } from "@/lib/adminPermissions";
 
 // Editing what an account is allowed to be.
 //
@@ -30,7 +31,9 @@ import {
 // direction. Being able only to grant would still leave a screen where any
 // administrator can demote every other one.
 
-const RESTRICTED = ["ADMIN", "ADMIN_MASTER"];
+// ADMIN_PERM_* (what an admin may do in /admin) is restricted the same way —
+// see lib/adminPermissions.ts and the master-only "Permissões" tab.
+const RESTRICTED_LABEL = "ADMIN, ADMIN_MASTER nem ADMIN_PERM_*";
 
 interface BadgeFlagItem {
   flag: string;
@@ -108,6 +111,12 @@ const FEATURE_FLAGS: KnownFlagItem[] = [
     label: "Isento de Pausa por Anúncio",
     description:
       "Transmite sem parar para assistir anúncio, por mais horas que acumule (ver a pausa por anúncio nas transmissões longas).",
+  },
+  {
+    flag: "TEST_GIFT_REDEEM",
+    label: "Já resgatou gift de experimentar",
+    description:
+      "Posta sozinha quando a conta resgata um gift de experimentar (2h). Tire para deixar resgatar outro.",
   },
   {
     flag: "OFFICIAL_DISCORD_JOINED",
@@ -233,8 +242,8 @@ export function AccountFlagsPanel() {
   function toggleFlag(flag: string) {
     const normalized = flag.trim().toUpperCase();
     if (!normalized) return;
-    if (RESTRICTED.includes(normalized) && !canEditAdminFlags) {
-      setError(t("admin.accountFlagsPanel.youCannotTouchValue", { value: RESTRICTED.join(" nem ") }));
+    if (isRestrictedAdminFlag(normalized) && !canEditAdminFlags) {
+      setError(t("admin.accountFlagsPanel.youCannotTouchValue", { value: RESTRICTED_LABEL }));
       return;
     }
     setError(null);
@@ -251,8 +260,8 @@ export function AccountFlagsPanel() {
   function handleAddCustomFlag() {
     const normalized = customFlag.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
     if (!normalized) return;
-    if (RESTRICTED.includes(normalized) && !canEditAdminFlags) {
-      setError(t("admin.accountFlagsPanel.youCannotTouchValue", { value: RESTRICTED.join(" nem ") }));
+    if (isRestrictedAdminFlag(normalized) && !canEditAdminFlags) {
+      setError(t("admin.accountFlagsPanel.youCannotTouchValue", { value: RESTRICTED_LABEL }));
       return;
     }
     setError(null);
@@ -265,8 +274,8 @@ export function AccountFlagsPanel() {
 
   function removeFlag(flag: string) {
     const normalized = flag.trim().toUpperCase();
-    if (RESTRICTED.includes(normalized) && !canEditAdminFlags) {
-      setError(t("admin.accountFlagsPanel.youCannotTouchValue", { value: RESTRICTED.join(" nem ") }));
+    if (isRestrictedAdminFlag(normalized) && !canEditAdminFlags) {
+      setError(t("admin.accountFlagsPanel.youCannotTouchValue", { value: RESTRICTED_LABEL }));
       return;
     }
     setError(null);
@@ -425,13 +434,13 @@ export function AccountFlagsPanel() {
                   </span>
                 ) : (
                   activeFlags.map((flag) => {
-                    const isRestricted = RESTRICTED.includes(flag) && !canEditAdminFlags;
+                    const isRestricted = isRestrictedAdminFlag(flag) && !canEditAdminFlags;
                     const badge = badgeMap.get(flag);
                     return (
                       <span
                         key={flag}
                         className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ${
-                          RESTRICTED.includes(flag)
+                          isRestrictedAdminFlag(flag)
                             ? "bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-200"
                             : badge
                             ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/70 dark:text-emerald-200"
@@ -551,7 +560,7 @@ export function AccountFlagsPanel() {
                   {!canEditAdminFlags && (
                     <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
                       {t("admin.accountFlagsPanel.youCannotTouchValue", {
-                        value: RESTRICTED.join(" nem "),
+                        value: RESTRICTED_LABEL,
                       })}
                     </p>
                   )}

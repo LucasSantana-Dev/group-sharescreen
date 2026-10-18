@@ -35,6 +35,14 @@ export function fromDateInput(value: string): number | null {
   return new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
 }
 
+/** "30 dias" or "5 horas" — a gift is measured in one or the other. */
+export function giftDurationLabel(
+  gift: { days: number; hours?: number | null },
+  tc: (key: string, count: number) => string
+): string {
+  return gift.hours ? tc("common.hourCount", gift.hours) : tc("common.dayCount", gift.days);
+}
+
 function formatDate(at: number | null): string {
   if (!at) return "—";
   try {
@@ -84,8 +92,9 @@ function GiftListRow({ gift, onChanged }: { gift: AdminGiftRow; onChanged: () =>
           {t(`admin.giftList.status.${gift.status}`)}
         </span>
         <span className="font-medium text-zinc-700 dark:text-zinc-300">
-          {gift.planTitle} · {tc("common.dayCount", gift.days)}
+          {gift.planTitle} · {giftDurationLabel(gift, tc)}
           {gift.trialOnly ? ` · ${t("admin.giftPanel.trialBadge")}` : ""}
+          {gift.testGift ? ` · ${t("admin.giftPanel.testBadge")}` : ""}
         </span>
         <span className="text-zinc-500 dark:text-zinc-400">
           {t("admin.giftList.createdOn", { value: formatDate(gift.createdAt) })}

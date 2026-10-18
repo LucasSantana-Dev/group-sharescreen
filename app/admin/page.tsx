@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AccountModal, type AccountModalMode } from "@/components/AccountModal";
 import { useAuth } from "@/lib/AuthContext";
 import { AdminLogPanel } from "./AdminLogPanel";
-import { ADMIN_SECTIONS } from "./DashboardPanel";
+import { ADMIN_SECTIONS, type AdminCan } from "./DashboardPanel";
+import { AdminPermissionsPanel } from "./AdminPermissionsPanel";
+import { adminPermissionsFromFlags } from "@/lib/adminPermissions";
 import { useT } from "@/lib/useI18n";
 import { translate } from "@/lib/i18n";
 
@@ -32,18 +34,34 @@ import { translate } from "@/lib/i18n";
 // Registros is last on purpose and not alphabetically: it is a record of what
 // was done, so it belongs after the doing — and it is the one tab that is read
 // rather than used.
-const TABS = [
-  ...ADMIN_SECTIONS.map((section) => ({ id: section.id, label: section.label })),
-  { id: "registros", get label() { return translate("admin.logs"); } },
-];
+//
+// Every tab is filtered by the viewer's permissions (lib/adminPermissions.ts):
+// an admin sees only the jobs the master gave them. "Permissões" — who may do
+// what — is ADMIN_MASTER's alone, and sits after the log.
 
 export default function AdminPage() {
   const t = useT();
   const { account, loading } = useAuth();
-  const [tab, setTab] = useState<string>(ADMIN_SECTIONS[0].id);
+  const [chosenTab, setTab] = useState<string | null>(null);
   const [accountModal, setAccountModal] = useState<AccountModalMode | null>(null);
 
   const isAdmin = Boolean(account?.flags.includes("ADMIN"));
+  const isMaster = Boolean(account?.flags.includes("ADMIN_MASTER"));
+  const flagsKey = account?.flags.join(",") ?? "";
+  const permissions = useMemo(
+    () => adminPermissionsFromFlags(flagsKey ? flagsKey.split(",") : []),
+    [flagsKey]
+  );
+  const can: AdminCan = (...needed) => needed.some((permission) => permissions.has(permission));
+  const sections = ADMIN_SECTIONS.filter((section) => section.needs.some((permission) => permissions.has(permission)));
+  const tabs = [
+    ...sections.map((section) => ({ id: section.id, label: section.label })),
+    ...(permissions.has("logs") ? [{ id: "registros", label: translate("admin.logs") }] : []),
+    ...(isMaster ? [{ id: "permissoes", label: translate("admin.permissions.tab") }] : []),
+  ];
+  // A tab the viewer no longer has (permissions changed under them) falls
+  // back to the first one they do.
+  const tab = tabs.some((entry) => entry.id === chosenTab) ? chosenTab : (tabs[0]?.id ?? null);
 
   if (loading) {
     return (
@@ -115,7 +133,7 @@ export default function AdminPage() {
             as two groups of tabs, and on a phone that is most of the screen
             before any content. */}
         <div className="mt-6 flex gap-1 overflow-x-auto border-b border-zinc-200 dark:border-zinc-800">
-          {TABS.map((entry) => (
+          {tabs.map((entry) => (
             <button
               key={entry.id}
               type="button"
@@ -133,13 +151,17 @@ export default function AdminPage() {
         </div>
 
         <div className="mt-6">
-          {tab === "registros" ? (
+          {tab === null ? (
+            // An ADMIN the master has not given anything yet.
+            <p className="rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+              {t("admin.permissions.noneYet")}
+            </p>
+          ) : tab === "registros" ? (
             <AdminLogPanel />
+          ) : tab === "permissoes" ? (
+            <AdminPermissionsPanel />
           ) : (
-            // Falls back to the first section rather than rendering nothing:
-            // the only way `tab` names no section is a stale value, and an
-            // empty page is a worse answer than the default one.
-            (ADMIN_SECTIONS.find((section) => section.id === tab) ?? ADMIN_SECTIONS[0]).Panel()
+            (sections.find((section) => section.id === tab) ?? sections[0]).Panel({ can })
           )}
         </div>
       </div>

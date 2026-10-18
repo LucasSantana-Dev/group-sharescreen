@@ -28,6 +28,7 @@ import { ReservedInvitesPanel } from "./ReservedInvitesPanel";
 import { FeaturesPanel } from "./FeaturesPanel";
 import { EventPromosPanel } from "./EventPromosPanel";
 import { translate } from "@/lib/i18n";
+import type { AdminPermission } from "@/lib/adminPermissions";
 
 // The admin area, in sections.
 //
@@ -41,21 +42,32 @@ import { translate } from "@/lib/i18n";
 //
 // The list is exported so the page's tabs are generated from it. A new panel
 // is one entry in one group here, and the tab bar follows on its own.
+//
+// Each panel is drawn only for an admin holding its permission (see
+// lib/adminPermissions.ts), and a tab with nothing to draw is left out of the
+// bar — `needs` is the union of what its panels ask for. The API enforces the
+// same permissions; this only avoids drawing panels that would be refused.
 
 function Group({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-col gap-6">{children}</div>;
 }
 
+/** Whether the viewer holds any of these permissions. */
+export type AdminCan = (...permissions: AdminPermission[]) => boolean;
+
 export interface AdminSection {
   id: string;
   label: string;
-  Panel: () => React.ReactElement;
+  /** The tab shows when the viewer holds any of these. */
+  needs: AdminPermission[];
+  Panel: (props: { can: AdminCan }) => React.ReactElement;
 }
 
 export const ADMIN_SECTIONS: AdminSection[] = [
   {
     id: "overview",
     get label() { return translate("common.overview"); },
+    needs: ["stats"],
     Panel: () => (
       <Group>
         <StatsOverview />
@@ -65,6 +77,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   {
     id: "broadcast",
     get label() { return translate("common.broadcast"); },
+    needs: ["stats"],
     Panel: () => (
       <Group>
         <StreamStatsPanel />
@@ -74,43 +87,59 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   {
     id: "quality",
     get label() { return translate("admin.dashboardPanel.connectionQuality"); },
-    Panel: () => (
+    needs: ["turn", "stats"],
+    Panel: ({ can }) => (
       <Group>
         {/* Above the numbers: when the numbers say Cloudflare's network is
             the problem (or its bill is), this is what gets reached for. */}
-        <CloudflareTurnPanel />
-        <ConnectionQualityPanel />
+        {can("turn") && <CloudflareTurnPanel />}
+        {can("stats") && <ConnectionQualityPanel />}
       </Group>
     ),
   },
   {
     id: "users",
     get label() { return translate("admin.dashboardPanel.users"); },
-    Panel: () => (
+    needs: [
+      "premium_grant",
+      "gifts",
+      "test_gifts",
+      "cancellations",
+      "account_flags",
+      "badges",
+      "usernames",
+      "points",
+      "auto_flags",
+    ],
+    Panel: ({ can }) => (
       <Group>
         {/* Ordered by how often they are reached for: comping a plan and
             editing flags are the errands, the rules panel is the one you set
             up once and revisit rarely. */}
-        <GrantPremiumPanel />
+        {can("premium_grant") && <GrantPremiumPanel />}
         {/* Directly under it: the same decision — which plan, how long —
-            asked when there is nobody to aim it at yet. */}
-        <GiftPanel />
+            asked when there is nobody to aim it at yet. Normal and test gifts
+            are separate permissions; the panel draws what the viewer may do. */}
+        {can("gifts", "test_gifts") && (
+          <GiftPanel canGifts={can("gifts")} canTestGifts={can("test_gifts")} />
+        )}
         {/* Still about paying accounts, and the one panel here that is read
             rather than used: what the people who stopped paying said on their
             way out. */}
-        <CancellationsPanel />
-        <AccountFlagsPanel />
+        {can("cancellations") && <CancellationsPanel />}
+        {can("account_flags") && <AccountFlagsPanel />}
         {/* Next to the flags: most badges are given by one. */}
-        <BadgesAdminPanel />
-        <AccountUsernamePanel />
-        <AccountPointsPanel />
-        <AutoFlagsPanel />
+        {can("badges") && <BadgesAdminPanel />}
+        {can("usernames") && <AccountUsernamePanel />}
+        {can("points") && <AccountPointsPanel />}
+        {can("auto_flags") && <AutoFlagsPanel />}
       </Group>
     ),
   },
   {
     id: "groups",
     get label() { return translate("common.groups"); },
+    needs: ["groups"],
     Panel: () => (
       <div className="flex flex-col gap-4">
         <GroupsPanel />
@@ -123,6 +152,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   {
     id: "bots",
     get label() { return translate("admin.dashboardPanel.bots"); },
+    needs: ["bots"],
     Panel: () => (
       <Group>
         <BotsPanel />
@@ -132,15 +162,16 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   {
     id: "moderation",
     get label() { return translate("admin.dashboardPanel.moderation"); },
-    Panel: () => (
+    needs: ["bans", "themes", "banned_words", "antispam", "eval"],
+    Panel: ({ can }) => (
       <Group>
-        <BansPanel />
+        {can("bans") && <BansPanel />}
         {/* Under the bans, because it is one: content taken down and a person
             stopped from posting more, just scoped to themes. */}
-        <ThemeModerationPanel />
-        <BannedWordsPanel />
-        <AntiSpamPanel />
-        <EvalPanel />
+        {can("themes") && <ThemeModerationPanel />}
+        {can("banned_words") && <BannedWordsPanel />}
+        {can("antispam") && <AntiSpamPanel />}
+        {can("eval") && <EvalPanel />}
       </Group>
     ),
   },
@@ -150,6 +181,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     // watched day by day.
     id: "features",
     get label() { return translate("admin.dashboardPanel.features"); },
+    needs: ["features"],
     Panel: () => (
       <Group>
         <FeaturesPanel />
@@ -159,11 +191,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   {
     id: "site",
     get label() { return translate("admin.dashboardPanel.site"); },
-    Panel: () => (
+    needs: ["announcement", "supporters", "desktop_update"],
+    Panel: ({ can }) => (
       <Group>
-        <AnnouncementPanel />
-        <SupportersPanel />
-        <DesktopUpdatePanel />
+        {can("announcement") && <AnnouncementPanel />}
+        {can("supporters") && <SupportersPanel />}
+        {can("desktop_update") && <DesktopUpdatePanel />}
       </Group>
     ),
   },
@@ -173,6 +206,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     // live the moment it is saved.
     id: "events",
     get label() { return translate("admin.dashboardPanel.events"); },
+    needs: ["event_promos"],
     Panel: () => (
       <Group>
         <EventPromosPanel />
@@ -182,6 +216,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   {
     id: "ads",
     get label() { return translate("admin.dashboardPanel.ads"); },
+    needs: ["ads"],
     Panel: () => (
       <Group>
         <PartnerAdsPanel />

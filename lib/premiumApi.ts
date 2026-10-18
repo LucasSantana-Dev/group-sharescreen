@@ -514,6 +514,10 @@ export type GiftCodeInfo = {
   planIconId: string;
   planDescription: string;
   days: number;
+  /** Set when the gift is measured in hours (then `days` is 0). */
+  hours?: number;
+  /** A "gift de experimentar": each account may redeem one, ever. */
+  testGift?: boolean;
   createdAt: number;
   from: GiftSender | null;
   /** A free trial: redeeming opens a Stripe checkout, billed after `days`. */
@@ -562,6 +566,7 @@ export type RedeemFailure =
   | "account_required"
   | "not_allowed"
   | "has_plan"
+  | "test_used"
   | "unknown";
 
 export type RedeemGiftResult =

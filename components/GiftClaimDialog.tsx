@@ -268,9 +268,16 @@ export function GiftClaimDialog({
                 <span className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                   {gift.trialOnly
                     ? t("giftClaimDialog.trialDays", { value: gift.days })
-                    : `${gift.days} dias de acesso`}
+                    : gift.hours
+                      ? t("giftClaimDialog.hoursOfAccess", { value: gift.hours })
+                      : `${gift.days} dias de acesso`}
                 </span>
               </p>
+              {gift.testGift && state.kind !== "done" && (
+                <p className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                  {t("giftClaimDialog.testGiftExplain")}
+                </p>
+              )}
               {gift.trialOnly && state.kind !== "done" && (
                 <p className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
                   {t("giftClaimDialog.trialExplain", {
@@ -417,6 +424,8 @@ export function GiftClaimDialog({
                 >
                   {failure === "not_allowed"
                     ? t("giftClaimDialog.notAllowed")
+                    : failure === "test_used"
+                      ? t("giftClaimDialog.testUsed")
                     : failure === "has_plan"
                       ? t("giftClaimDialog.trialHasPlan")
                       : error}

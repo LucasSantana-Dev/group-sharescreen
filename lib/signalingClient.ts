@@ -192,6 +192,8 @@ export type PremiumGiftEvent = {
   fromId: string | null;
   planTitle: string;
   days: number;
+  /** Set when the gift was measured in hours (then `days` is 0). */
+  hours?: number;
 };
 
 /**
@@ -210,6 +212,7 @@ export type PremiumGiftRedeemedEvent = {
   byName: string;
   planTitle: string;
   days: number;
+  hours?: number;
 };
 
 /**
@@ -2534,6 +2537,7 @@ class SignalingClient {
             byName: typeof msg.byName === "string" ? msg.byName : translate("common.someone"),
             planTitle: typeof msg.planTitle === "string" ? msg.planTitle : translate("common.pro"),
             days: typeof msg.days === "number" ? msg.days : 0,
+            ...(typeof msg.hours === "number" ? { hours: msg.hours } : {}),
           },
         });
         break;
@@ -2582,6 +2586,7 @@ class SignalingClient {
             fromId: typeof msg.fromId === "string" ? msg.fromId : null,
             planTitle: typeof msg.planTitle === "string" ? msg.planTitle : translate("common.pro"),
             days: typeof msg.days === "number" ? msg.days : 0,
+            ...(typeof msg.hours === "number" ? { hours: msg.hours } : {}),
           },
           giftSeq: this.state.giftSeq + 1,
         });
