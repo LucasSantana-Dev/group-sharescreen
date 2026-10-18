@@ -3155,6 +3155,19 @@ function WatchRoomView({
   // only us" (mirrors the server's canUseRoomPermission, which is what
   // actually enforces it; this copy only decides what to render).
   const isRoomManager = isRoomOwner || isRoomAdmin;
+  // Managers deleting other people's chat messages — an experiment, counted
+  // only for whoever would actually see the button.
+  const chatDeleteFeature = useFeature("room-chat-delete", { track: isRoomManager });
+  const canDeleteChat = isRoomManager && chatDeleteFeature.enabled;
+  // Same limits the server enforces: never the owner's, and an admin's only
+  // when we own the room.
+  const chatProtectedUserIds = useMemo(
+    () => [
+      ...(state.roomOwnerId ? [state.roomOwnerId] : []),
+      ...(isRoomOwner ? [] : state.roomAdmins.map((a) => a.id).filter((id) => id !== state.selfUserId)),
+    ],
+    [state.roomOwnerId, state.roomAdmins, state.selfUserId, isRoomOwner]
+  );
   // In a group's voice room, our own switches — our roles may give us what
   // the room's (@everyone's) do not. Never the theme, which is the room's.
   const myPermissions = state.myRoomPermissions;
@@ -4817,6 +4830,25 @@ function WatchRoomView({
   // The phone opens member actions from a tap on the message rather than a
   // right click — it has no right click, and long-press is the browser's text
   // selection.
+  function confirmDeleteChatMessage(message: { id: string }) {
+    const remove = () => {
+      signalingClient.deleteChatMessage(message.id);
+      trackFeatureEvent("room_chat_message_deleted");
+    };
+    void openPopup("confirm", {
+      data: {
+        title: translate("groups.textChannelView.deleteMessage"),
+        message: translate("groups.textChannelView.thisCannotBeUndone"),
+        cancelLabel: translate("common.cancel"),
+        confirmLabel: translate("common.delete"),
+        confirmStyle: "Danger",
+        onChoose: (confirmed: boolean) => {
+          if (confirmed) remove();
+        },
+      },
+    });
+  }
+
   function openMemberActionsFromChat(from: string, name: string) {
     const peer = chatAuthorPeer(from, name);
     if (peer) openMemberActions(peer);
@@ -7705,6 +7737,8 @@ function WatchRoomView({
         }
         selfId={state.selfId}
         selfName={state.name}
+        onDeleteMessage={canDeleteChat ? confirmDeleteChatMessage : undefined}
+        protectedUserIds={chatProtectedUserIds}
         renderAuthorMenu={
           isRoomManager && isDesktopLayout
             ? (from, name, close) => renderMemberMenu(chatAuthorPeer(from, name), close)

@@ -2695,6 +2695,13 @@ class SignalingClient {
         }
         break;
       }
+      case "chat-deleted": {
+        const id = msg.id;
+        if (typeof id !== "string") break;
+        if (!this.state.chatMessages.some((m) => m.id === id)) break;
+        this.setState({ chatMessages: this.state.chatMessages.filter((m) => m.id !== id) });
+        break;
+      }
       case "chat-blocked":
         this.setState({ chatBlockedMessage: (msg.message as string) ?? translate("signalingClient.messageBlocked") });
         break;
@@ -3704,6 +3711,12 @@ class SignalingClient {
     if (!trimmed) return;
     this.setState({ chatBlockedMessage: null });
     this.rawSend({ type: "chat", text: trimmed, replyTo: replyTo ?? undefined });
+  }
+
+  // A room manager taking someone's message out of the chat — the server
+  // checks who may, and answers everyone with "chat-deleted".
+  deleteChatMessage(id: string) {
+    this.rawSend({ type: "chat-delete", id });
   }
 
   sendGif(url: string, replyTo?: ChatReplyTo | null) {

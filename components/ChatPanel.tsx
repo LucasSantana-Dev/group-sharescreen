@@ -31,7 +31,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { withDeviceSuffix } from "@/lib/displayName";
 import { Popover, Tooltip } from "@/components/Tooltip";
 import { NotificationBell } from "@/components/NotificationBell";
-import { MdClose, MdReply } from "react-icons/md";
+import { MdClose, MdDeleteOutline, MdReply } from "react-icons/md";
 import { LuPanelRightClose } from "react-icons/lu";
 import { ChatImageModal, type ChatImagePreviewState } from "@/components/ChatImageModal";
 import { AttachMenu, splitPicked } from "@/components/AttachMenu";
@@ -202,7 +202,13 @@ export function ChatPanel({
   roomHandle = null,
   topSlot,
   attachExtras,
+  onDeleteMessage,
+  protectedUserIds,
 }: {
+  /** A room manager deleting someone's message — absent for everyone else. */
+  onDeleteMessage?: (message: ChatMessage) => void;
+  /** Whose messages the delete button stays off (the owner; admins, unless we own the room). */
+  protectedUserIds?: string[];
   /** Drawn between the header and the log — the room's polls and task progress (see ChatToolsStrip). */
   topSlot?: ReactNode;
   /** More entries for the "+" menu besides attachments (see AttachMenu's extraItems). */
@@ -960,16 +966,19 @@ export function ChatPanel({
   // The props arrive as fresh functions and arrays on every render of the
   // room, so what the log depends on is reduced to what it actually reads:
   // whether each callback is there, and who has a second device here.
-  const latestRef = useRef({ startReply, scrollToMessage, onOpenProfile, onAuthorContextMenu });
+  const latestRef = useRef({ startReply, scrollToMessage, onOpenProfile, onAuthorContextMenu, onDeleteMessage });
   useLayoutEffect(() => {
-    latestRef.current = { startReply, scrollToMessage, onOpenProfile, onAuthorContextMenu };
+    latestRef.current = { startReply, scrollToMessage, onOpenProfile, onAuthorContextMenu, onDeleteMessage };
   });
   const [handlers] = useState(() => ({
     startReply: (message: ChatMessage) => latestRef.current.startReply(message),
     scrollToMessage: (id: string) => latestRef.current.scrollToMessage(id),
     openProfile: (userId: string) => latestRef.current.onOpenProfile?.(userId),
     authorContextMenu: (from: string, name: string) => latestRef.current.onAuthorContextMenu?.(from, name),
+    deleteMessage: (message: ChatMessage) => latestRef.current.onDeleteMessage?.(message),
   }));
+  const canDeleteMessages = Boolean(onDeleteMessage);
+  const protectedKey = (protectedUserIds ?? []).join(",");
   const hasAuthorMenu = Boolean(renderAuthorMenu);
   const hasAuthorContextMenu = Boolean(onAuthorContextMenu);
   const canOpenProfile = Boolean(onOpenProfile);
@@ -1058,6 +1067,21 @@ export function ChatPanel({
         (previous.avatarUrl ?? null) === (m.avatarUrl ?? null) &&
         m.ts - previous.ts < GROUP_WINDOW_MS;
       const hasMenu = hasAuthorMenu || hasAuthorContextMenu;
+      const deleteButton =
+        canDeleteMessages && !m.webhook && !(m.userId && protectedKey.split(",").includes(m.userId)) ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlers.deleteMessage(m);
+            }}
+            aria-label={t("chatPanel.deleteMessage")}
+            title={t("chatPanel.deleteMessage")}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-zinc-400 opacity-100 transition hover:bg-red-100 hover:text-red-600 focus:opacity-100 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 sm:group-focus-within:opacity-100 dark:text-zinc-500 dark:hover:bg-red-950 dark:hover:text-red-400"
+          >
+            <MdDeleteOutline className="h-3.5 w-3.5" />
+          </button>
+        ) : null;
       const row = (
         <div
           key={m.id}
@@ -1227,6 +1251,7 @@ export function ChatPanel({
                     <span className="text-[11px] font-medium sm:hidden">{t("common.reply")}</span>
                   </button>
                 )}
+                {deleteButton}
               </div>
             </div>
           )}
@@ -1320,6 +1345,7 @@ export function ChatPanel({
                     <span className="text-[11px] font-medium sm:hidden">{t("common.reply")}</span>
                   </button>
                 )}
+                {deleteButton}
               </div>
             )}
           </div>
@@ -1366,6 +1392,8 @@ export function ChatPanel({
     hasAuthorContextMenu,
     canOpenProfile,
     canReply,
+    canDeleteMessages,
+    protectedKey,
     handlers,
     t,
   ]);

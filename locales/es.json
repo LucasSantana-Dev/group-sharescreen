@@ -1066,6 +1066,7 @@
   "chatPanel.message": "[Mensaje]",
   "chatPanel.noMessageYet": "Aún no hay mensajes.",
   "chatPanel.removeValue": "Quitar {value}",
+  "chatPanel.deleteMessage": "Eliminar mensaje",
   "chatPanel.replyToName": "Responder a {name}",
   "chatPanel.replyToName2": "Responder a @{name}...",
   "chatPanel.tab": "Tab ↵",
