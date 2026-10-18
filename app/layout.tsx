@@ -7,6 +7,7 @@ import { CapacitorBridge } from "@/components/CapacitorBridge";
 import { ForkWatermark } from "@/components/ForkWatermark";
 import { LastScreenRestorer } from "@/components/LastScreenRestorer";
 import { InstallAppButton } from "@/components/InstallAppButton";
+import { EventPromoWidget } from "@/components/EventPromoWidget";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { AuthProvider } from "@/lib/AuthContext";
 import { PresenceReporter } from "@/components/PresenceReporter";
@@ -379,6 +380,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                     closes the page's own flow — see components/MobileTabBar. */}
                 <MobileTabBar />
                 <InstallAppButton />
+                {/* The "acontecendo agora" corner card, written from the
+                    admin's Eventos tab — see components/EventPromoWidget. */}
+                <EventPromoWidget />
               </NtPopups>
             </AuthProvider>
           </SupressErrors>

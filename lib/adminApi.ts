@@ -12,6 +12,7 @@ import type {
 } from "./announcement";
 import type { Partner, PartnerClickRewardPlacement, PartnerSchedule } from "./partner";
 import type { Supporter } from "./supporter";
+import type { EventPromo, EventPromoInput } from "./eventPromo";
 import { translate } from "@/lib/i18n";
 import type { BadgeDefinition } from "./badges";
 import { updateCachedAdsEnabled } from "./useAdsEnabled";
@@ -539,6 +540,38 @@ export async function setSupporters(supporters: Supporter[]): Promise<Supporter[
     body: JSON.stringify({ supporters }),
   });
   return data.supporters;
+}
+
+// The "acontecendo agora" corner card (see components/EventPromoWidget.tsx).
+// Every write answers with the whole list and the live counters, so the panel
+// never has to refetch.
+export type EventPromoStats = { views: number; clicks: number; dismisses: number };
+export type EventPromoAdminState = { promos: EventPromo[]; stats: Record<string, EventPromoStats> };
+
+export async function fetchAdminEventPromos(): Promise<EventPromoAdminState> {
+  return adminFetch<EventPromoAdminState>("/admin/event-promos");
+}
+
+export async function createEventPromo(input: EventPromoInput): Promise<EventPromoAdminState> {
+  return adminFetch<EventPromoAdminState>("/admin/event-promos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateEventPromo(id: string, input: EventPromoInput): Promise<EventPromoAdminState> {
+  return adminFetch<EventPromoAdminState>(`/admin/event-promos/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteEventPromo(id: string): Promise<EventPromoAdminState> {
+  return adminFetch<EventPromoAdminState>(`/admin/event-promos/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
 
 // Sidebar partner-ad slot (see components/PartnerCard.tsx). Unlike the

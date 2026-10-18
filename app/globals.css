@@ -1391,3 +1391,34 @@ html[data-app-shell] body {
     opacity: 0;
   }
 }
+
+/*
+ * The "acontecendo agora" corner card (components/EventPromoCard.tsx). It
+ * rises in once when it appears; the attention after that comes from the
+ * live dot and the shine on the button, which already have their own
+ * reduced-motion opt-outs above.
+ */
+@keyframes event-promo-in {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.event-promo-in {
+  animation: event-promo-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-promo-in {
+    animation: none;
+  }
+}

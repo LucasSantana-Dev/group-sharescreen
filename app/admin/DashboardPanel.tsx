@@ -26,6 +26,7 @@ import { GroupsPanel } from "./GroupsPanel";
 import { BotsPanel } from "./BotsPanel";
 import { ReservedInvitesPanel } from "./ReservedInvitesPanel";
 import { FeaturesPanel } from "./FeaturesPanel";
+import { EventPromosPanel } from "./EventPromosPanel";
 import { translate } from "@/lib/i18n";
 
 // The admin area, in sections.
@@ -163,6 +164,18 @@ export const ADMIN_SECTIONS: AdminSection[] = [
         <AnnouncementPanel />
         <SupportersPanel />
         <DesktopUpdatePanel />
+      </Group>
+    ),
+  },
+  {
+    // The "acontecendo agora" card in a corner of every page. Its own tab:
+    // it is touched on the day of an event, often several times, and goes
+    // live the moment it is saved.
+    id: "events",
+    get label() { return translate("admin.dashboardPanel.events"); },
+    Panel: () => (
+      <Group>
+        <EventPromosPanel />
       </Group>
     ),
   },

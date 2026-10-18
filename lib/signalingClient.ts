@@ -7,6 +7,7 @@ import type { Announcement } from "./announcement";
 import { readEmbeds, type MessageEmbed } from "./messageEmbeds";
 import type { Partner } from "./partner";
 import type { Supporter } from "./supporter";
+import type { EventPromo } from "./eventPromo";
 import { getAccountToken } from "./accountApi";
 import {
   getCaptchaToken,
@@ -711,6 +712,11 @@ export type SignalingState = {
   // empty via a live edit rather than just never having set it).
   supporters: Supporter[];
   supportersSeq: number;
+  // The "acontecendo agora" corner card (see EventPromoWidget.tsx). Pushed on
+  // connect when there is one and again on every admin edit; reset on
+  // "welcome" because the server sends nothing at all when the list is empty,
+  // so a promo deleted while this socket was down must not linger.
+  eventPromos: EventPromo[];
   // Bumped by the admin panel's "lançar atualização" broadcast (see
   // server/signaling.ts's POST /admin/desktop-update). A counter rather than
   // a flag because the message carries nothing and has no lasting state —
@@ -956,6 +962,7 @@ const initialState: SignalingState = {
   callEndedSeq: 0,
   supporters: [],
   supportersSeq: 0,
+  eventPromos: [],
   desktopUpdateSeq: 0,
   chatBlockedMessage: null,
   music: null,
@@ -1629,7 +1636,7 @@ class SignalingClient {
     }
     switch (msg.type) {
       case "welcome":
-        this.setState({ selfId: msg.id as string });
+        this.setState({ selfId: msg.id as string, eventPromos: [] });
         break;
       case "registered": {
         this.clearRegisterAck();
@@ -2668,6 +2675,9 @@ class SignalingClient {
           supporters: Array.isArray(msg.supporters) ? (msg.supporters as Supporter[]) : [],
           supportersSeq: this.state.supportersSeq + 1,
         });
+        break;
+      case "event-promos":
+        this.setState({ eventPromos: Array.isArray(msg.promos) ? (msg.promos as EventPromo[]) : [] });
         break;
       case "desktop-update-check":
         this.setState({ desktopUpdateSeq: this.state.desktopUpdateSeq + 1 });
@@ -3739,6 +3749,12 @@ class SignalingClient {
 
   reportAnnouncementXClick(id: string) {
     this.rawSend({ type: "announcement-x-click", id });
+  }
+
+  // Counters for the admin panel's event promo list (see the API's
+  // eventPromoStore.ts) — EventPromoWidget.tsx is the only caller.
+  reportEventPromoStat(id: string, kind: "view" | "click" | "dismiss") {
+    this.rawSend({ type: "event-promo-stat", id, kind });
   }
 
   // Same reasoning as the announcement-* reporters above, for the sidebar

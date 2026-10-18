@@ -115,6 +115,9 @@ export const selectAccountName = pickFields(["account", "name"]);
 // The supporters list pushed by the server.
 export const selectSupportersPush = pickFields(["supporters", "supportersSeq"]);
 
+// The "acontecendo agora" corner card.
+export const selectEventPromos = pickFields(["eventPromos"]);
+
 // The home page's name gate.
 export const selectHomePage = pickFields(["bannedReason", "name", "nameError", "status"]);
 
