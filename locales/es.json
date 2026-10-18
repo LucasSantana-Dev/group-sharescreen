@@ -4734,5 +4734,21 @@
   "roomTools.annotate.turnOff": "Desactivar herramienta",
   "mobileScreenShareModal.downloadOnGooglePlay": "Descargar en Google Play",
   "app.downloadPanel.android": "Android",
-  "app.downloadPanel.androidOnly": "La app para móvil está disponible solo para Android, en Google Play. Todavía no tenemos versión para iOS."
+  "app.downloadPanel.androidOnly": "La app para móvil está disponible solo para Android, en Google Play. Todavía no tenemos versión para iOS.",
+  "cardCheckoutModal.title": "Pago seguro",
+  "cardCheckoutModal.close": "Cerrar",
+  "cardCheckoutModal.loading": "Cargando…",
+  "cardCheckoutModal.loadError": "No se pudo cargar el formulario de pago. Revisa tu conexión e inténtalo de nuevo.",
+  "cardCheckoutModal.cardNumber": "Número de tarjeta",
+  "cardCheckoutModal.expiry": "Vencimiento",
+  "cardCheckoutModal.cvc": "CVC",
+  "cardCheckoutModal.nameOnCard": "Nombre en la tarjeta",
+  "cardCheckoutModal.nameOnCardPlaceholder": "Como aparece en la tarjeta",
+  "cardCheckoutModal.pay": "Suscribirme ahora",
+  "cardCheckoutModal.paying": "Procesando…",
+  "cardCheckoutModal.genericError": "No se pudo completar el pago. Inténtalo de nuevo o usa otra tarjeta.",
+  "cardCheckoutModal.secureNote": "Los datos de la tarjeta van directo a Stripe, cifrados.",
+  "cardCheckoutModal.paidTitle": "¡Pago aprobado!",
+  "cardCheckoutModal.paidBody": "Tu plan se activará en un momento.",
+  "cardCheckoutModal.done": "Cerrar"
 }

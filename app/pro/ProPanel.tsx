@@ -23,6 +23,7 @@ import type { BillingCycle } from "@/lib/premiumApi";
 import { useAuth } from "@/lib/AuthContext";
 import { AccountModal, type AccountModalMode } from "@/components/AccountModal";
 import { PixChargeModal } from "@/components/PixChargeModal";
+import { CardCheckoutModal } from "@/components/CardCheckoutModal";
 import { DeferredDowngradeModal } from "@/components/DeferredDowngradeModal";
 import useNtPopups from "ntpopups";
 import { isIosDevice, isStandaloneDisplay } from "@/lib/browserEnv";
@@ -42,6 +43,7 @@ import {
   startPremiumCheckout,
   startUpgradePix,
   startUpgradeSchedule,
+  type InlineCheckout,
   type PixCharge,
   type PremiumPlan,
   type UpgradeQuote,
@@ -334,6 +336,19 @@ export function ProPanel({
   // Free for this person (see lib/useCallTranscript): not something to sell them.
   const transcriptFree = useFeature(CALL_TRANSCRIPT_FREE_FEATURE, { track: false }).enabled;
   const translationFree = useFeature(LIVE_TRANSLATION_FREE_FEATURE, { track: false }).enabled;
+  // Where the subscription's card form opens (the checkout-inline experiment).
+  // The API decides and counts the exposure (premiumRoutes' checkoutUiFor);
+  // read here only to *predict* it before the click's await, so the hosted
+  // path can keep opening its tab inside the user gesture while the in-page
+  // arms do not flash an empty tab open and shut. A wrong guess still works —
+  // see handleSubscribe.
+  const checkoutInline = useFeature("checkout-inline", { track: false });
+  const stripeRollout = useFeature("stripe-payments", { track: false });
+  const expectInlineCheckout =
+    (checkoutInline.variant === "embedded" || checkoutInline.variant === "custom") &&
+    stripeRollout.enabled &&
+    stripeRollout.variant !== "pix";
+  const [inlineCheckout, setInlineCheckout] = useState<InlineCheckout | null>(null);
   const compareLayout = compare.enabled && plans.length > 1;
   // The "buy-top" treatment: the price and checkout card above the table.
   const buyOnTop = compare.variant === PRO_COMPARE_BUY_TOP;
@@ -954,7 +969,8 @@ export function ProPanel({
     // would already have opened one.
     const bridge = getDesktopBridge();
     const replacePage = !bridge && checkoutMustReplacePage();
-    const tab = bridge || replacePage ? null : window.open("", "_blank");
+    // No placeholder when the form is expected to open on this page.
+    const tab = bridge || replacePage || expectInlineCheckout ? null : window.open("", "_blank");
 
     const result = await startPremiumCheckout(email.trim() || undefined, plan?.id, cycle);
     if (!result.ok) {
@@ -971,9 +987,32 @@ export function ProPanel({
       return;
     }
 
+    // The card form on this page (checkout-inline). A placeholder opened on a
+    // wrong guess goes away: nothing is going to be loaded into it.
+    if (result.inline) {
+      if (tab && !tab.closed) tab.close();
+      setInlineCheckout(result.inline);
+      setBusy(false);
+      setGenerating(false);
+      return;
+    }
+
     if (bridge?.openExternal) {
       void bridge.openExternal(result.checkoutUrl);
       setCheckoutUrl(result.checkoutUrl);
+    } else if (!tab && !replacePage && expectInlineCheckout) {
+      // Guessed in-page, got the hosted page (the server's decision differs —
+      // a deferred downgrade, a Mercado Pago account). Opened now, after the
+      // await: most browsers still count it as the click's own for a few
+      // seconds, and the one that does not gets the page navigated instead.
+      const late = window.open(result.checkoutUrl, "_blank");
+      if (late) {
+        checkoutTabRef.current = late;
+        setCheckoutUrl(result.checkoutUrl);
+      } else {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
     } else if (tab && !tab.closed && navigateTab(tab, result.checkoutUrl)) {
       checkoutTabRef.current = tab;
       setCheckoutUrl(result.checkoutUrl);
@@ -998,7 +1037,7 @@ export function ProPanel({
     // so a stale copy would open the checkout for whichever one was selected
     // when it was last created — i.e. switching plans and pressing subscribe
     // would charge for the previous one.
-  }, [email, plan?.id, cycle]);
+  }, [email, plan?.id, cycle, expectInlineCheckout]);
 
   // A closed checkout window is the clearest "they are done with it" signal
   // available — either they paid or they gave up, and both mean this page
@@ -1959,6 +1998,29 @@ export function ProPanel({
           be created from either branch above — a first purchase and a renewal
           — and a dialog rendered inside one of them would be a dialog the
           other could not open. */}
+      {/* The subscription's card form, when the checkout-inline experiment
+          opens it on this page. Paying only tells the page to go and look:
+          the plan is granted by the webhook, and syncStatus is how this page
+          finds out sooner than its next poll. */}
+      <CardCheckoutModal
+        checkout={inlineCheckout}
+        planLabel={
+          plan
+            ? `${plan.title} — ${pricing?.priceLabel ?? plan.priceLabel}${
+                cycle === "yearly" ? "/ano" : t("pro.proPanel.month2")
+              }`
+            : ""
+        }
+        onClose={() => {
+          setInlineCheckout(null);
+          void syncStatus(true);
+        }}
+        onPaid={() => {
+          void syncStatus(true);
+          window.setTimeout(() => void syncStatus(true), 3000);
+          window.setTimeout(() => void syncStatus(true), 8000);
+        }}
+      />
       <PixChargeModal
         charge={pix}
         paid={pixPaid}

@@ -167,7 +167,20 @@ export async function fetchPremiumPlans(
   return single ? [single] : [];
 }
 
-export type StartCheckoutResult =
+/**
+ * A card form that runs inside our own page instead of on checkout.stripe.com
+ * — the `checkout-inline` experiment, decided by the API (see premiumRoutes'
+ * checkoutUiFor). "embedded" is Stripe's Embedded Checkout for a session;
+ * "custom" is our dialog with Stripe's card fields, confirming an incomplete
+ * subscription's first payment. Both are opened by CardCheckoutModal.
+ */
+export type InlineCheckout = {
+  ui: "embedded" | "custom";
+  clientSecret: string;
+  publishableKey: string;
+};
+
+export type HostedCheckoutResult =
   | { ok: true; checkoutUrl: string }
   /**
    * `needsEmail` means the API wants a billing address before it can build
@@ -175,6 +188,12 @@ export type StartCheckoutResult =
    * rejected the one it was given. The page turns it into an input rather
    * than an error somebody can only stare at.
    */
+  | { ok: false; error: string; needsEmail?: boolean };
+
+/** A new subscription: a link to the hosted page, or a form for this page. */
+export type StartCheckoutResult =
+  | { ok: true; checkoutUrl: string; inline?: undefined }
+  | { ok: true; checkoutUrl?: undefined; inline: InlineCheckout }
   | { ok: false; error: string; needsEmail?: boolean };
 
 /**
@@ -208,11 +227,25 @@ export async function startPremiumCheckout(
       }),
     });
     const data = (await res.json().catch(() => ({}))) as {
-      checkoutUrl?: string;
+      checkoutUrl?: string | null;
+      checkoutUi?: string;
+      clientSecret?: string | null;
+      publishableKey?: string | null;
       error?: string;
       needsEmail?: boolean;
       lowerPlan?: boolean;
     };
+    if (
+      res.ok &&
+      (data.checkoutUi === "embedded" || data.checkoutUi === "custom") &&
+      data.clientSecret &&
+      data.publishableKey
+    ) {
+      return {
+        ok: true,
+        inline: { ui: data.checkoutUi, clientSecret: data.clientSecret, publishableKey: data.publishableKey },
+      };
+    }
     if (!res.ok || !data.checkoutUrl) {
       return {
         ok: false,
@@ -662,7 +695,7 @@ export async function startUpgradePix(
 export async function startUpgradeSchedule(
   planId: string,
   email?: string
-): Promise<StartCheckoutResult> {
+): Promise<HostedCheckoutResult> {
   try {
     const res = await fetch(`${getSignalingHttpBase()}/premium/upgrade/subscribe`, {
       method: "POST",
