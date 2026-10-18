@@ -153,7 +153,14 @@ export function Popover({
             reference={anchor}
             content={content}
             visible={open}
-            onClickOutside={() => onCloseRef.current()}
+            // A click on something drawn over the page that is *about* this
+            // panel (the room tour's bubble pointing into it) is not a click
+            // away from it.
+            onClickOutside={(_instance, event) => {
+              const target = event.target as Element | null;
+              if (target?.closest?.("[data-keep-popovers]")) return;
+              onCloseRef.current();
+            }}
             interactive
             placement={placement}
             offset={offset}

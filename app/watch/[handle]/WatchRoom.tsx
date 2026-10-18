@@ -338,6 +338,7 @@ import {
   wantsThemeEditor,
 } from "@/lib/roomThemes";
 import { useT } from "@/lib/useI18n";
+import { RoomTour } from "@/components/RoomTour";
 import { MobileSheet } from "@/components/MobileSheet";
 import { canShareNatively, haptic, shareLink } from "@/lib/nativeApp";
 import { useBackHandler } from "@/lib/useBackHandler";
@@ -1007,6 +1008,7 @@ function ShareControls({
         <Tooltip content={screenLabel} wrapperClassName="flex">
           <button
             type="button"
+            data-tour="screen"
             onClick={onToggleScreen}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -1178,6 +1180,7 @@ function ShareControls({
         <Tooltip content={cameraLabel} wrapperClassName="flex">
           <button
             type="button"
+            data-tour="camera"
             onClick={onToggleCamera}
             onContextMenu={(e) => {
               e.preventDefault();
@@ -6560,6 +6563,7 @@ function WatchRoomView({
       {isDesktopLayout && (
         <button
           type="button"
+          data-tour="shortcuts"
           onClick={() => {
             closeMenu();
             setShortcutsModalOpen(true);
@@ -6578,6 +6582,7 @@ function WatchRoomView({
       {showTranscript && !isWideLayout && (
         <button
           type="button"
+          data-tour="transcript"
           onClick={() => {
             closeMenu();
             openTranscript();
@@ -6601,6 +6606,7 @@ function WatchRoomView({
       {showLiveTranslation && (
         <button
           type="button"
+          data-tour="translation"
           onClick={() => {
             closeMenu();
             openLiveTranslation();
@@ -6623,6 +6629,7 @@ function WatchRoomView({
       {/* "Modo Streamer", which used to be a button in the account card
           (desktop). Below lg the pull-up menu already has it as a tile. */}
       {isWideLayout && canUseStreamerMode && (
+        <div data-tour="streamer" className="contents">
         <MenuToggleRow
           label={translate("common.streamerMode")}
           active={streamerMode}
@@ -6635,6 +6642,7 @@ function WatchRoomView({
               : translate("roomAccountCard.turnOnStreamerModeHidesThe")
           }
         />
+        </div>
       )}
 
       <div className="my-2 border-t border-zinc-200 dark:border-zinc-800" />
@@ -6645,7 +6653,7 @@ function WatchRoomView({
           control sits in the site header on every page that has one (see
           components/SiteHeader.tsx) — a room has no such header, which is
           exactly why it needs a copy in here. */}
-      <div className="mb-1 px-1">
+      <div data-tour="theme" className="mb-1 px-1">
         <p className="mb-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">{translate("common.theme")}</p>
         <ThemeSegmented />
       </div>
@@ -6699,6 +6707,7 @@ function WatchRoomView({
       )}
 
       {clipsMode.available && (
+        <div data-tour="clips" className="contents">
         <MenuToggleRow
           label={translate("watch.watchRoom.clipsMode")}
           badge={<NewBadge id="room-clips" />}
@@ -6708,8 +6717,10 @@ function WatchRoomView({
           activeIcon={<ClipIcon className="h-4 w-4" />}
           inactiveIcon={<ClipIcon className="h-4 w-4 opacity-50" />}
         />
+        </div>
       )}
       {recordingMode.available && (
+        <div data-tour="recordingMode" className="contents">
         <MenuToggleRow
           label={translate("watch.watchRoom.recordingMode")}
           badge={<NewBadge id="room-recording" />}
@@ -6719,6 +6730,7 @@ function WatchRoomView({
           activeIcon={<RecordIcon className="h-4 w-4" />}
           inactiveIcon={<RecordIcon className="h-4 w-4 opacity-50" />}
         />
+        </div>
       )}
       {orientationMode.available && (
         <MenuToggleRow
@@ -6732,6 +6744,7 @@ function WatchRoomView({
         />
       )}
       {multiScreenMode.available && (
+        <div data-tour="multiScreen" className="contents">
         <MenuToggleRow
           label={translate("watch.watchRoom.multiScreenMode")}
           badge={<NewBadge id="multi-screen-share" />}
@@ -6741,6 +6754,7 @@ function WatchRoomView({
           activeIcon={<ScreenIcon className="h-4 w-4" />}
           inactiveIcon={<ScreenIcon className="h-4 w-4 opacity-50" />}
         />
+        </div>
       )}
       <MenuToggleRow
         label={translate("watch.watchRoom.doubleClickToFocus")}
@@ -6765,7 +6779,7 @@ function WatchRoomView({
         activeIcon={<SpeakerIcon className="h-4 w-4" />}
         inactiveIcon={<SpeakerMuteIcon className="h-4 w-4" />}
       />
-      {noiseSuppressionToggle}
+      <div data-tour="noise" className="contents">{noiseSuppressionToggle}</div>
       <MenuToggleRow
         label={translate("watch.watchRoom.joinBroadcastsAutomatically")}
         active={autoJoin}
@@ -7041,6 +7055,7 @@ function WatchRoomView({
           >
             <button
               type="button"
+              data-tour="mic"
               onClick={handleToggleMic}
               onContextMenu={(e) => {
                 e.preventDefault();
@@ -7145,6 +7160,7 @@ function WatchRoomView({
                 e.preventDefault();
                 setQuickShortcutAction("toggleDeafen");
               }}
+              data-tour="deafen"
               aria-label={micsMuted ? translate("common.unmuteMicrophones") : translate("common.muteMicrophones")}
               className={`p-2 text-white transition ${canSelectSpeaker && !dockCompact ? "rounded-r-lg" : "rounded-lg"} ${micsMuted ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
                 }`}
@@ -7651,6 +7667,7 @@ function WatchRoomView({
             // Dead only when the room said no. Without the plan it still
             // does something worth doing.
             disabled={hasThemePlan && !roomAllowsTheme}
+            data-tour="roomTheme"
             onClick={() => {
               if (!hasThemePlan) {
                 // The modal rather than the page: this is a live call, and
@@ -7676,6 +7693,7 @@ function WatchRoomView({
         {isRoomManager && (
           <button
             type="button"
+            data-tour="manage"
             onClick={openManageRoomPopup}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
@@ -7786,26 +7804,28 @@ function WatchRoomView({
         onOpenProfile={setProfileUserId}
         actions={[
           showCallRecording && (
-            <CallRecordButton
-              key="record"
-              variant="card"
-              status={callRecording.status}
-              startedAt={callRecording.startedAt}
-              onClick={openCallRecording}
-              badge={<NewBadge id={CALL_RECORDING_FEATURE} />}
-              tip={callRecordingTip}
-            />
+            <div key="record" data-tour="record" className="contents">
+              <CallRecordButton
+                variant="card"
+                status={callRecording.status}
+                startedAt={callRecording.startedAt}
+                onClick={openCallRecording}
+                badge={<NewBadge id={CALL_RECORDING_FEATURE} />}
+                tip={callRecordingTip}
+              />
+            </div>
           ),
           // Where "Modo Streamer" was (it is in "⋯" now).
           showTranscript && (
-            <TranscriptButton
-              key="transcript"
-              status={callTranscript.status}
-              startedAt={callTranscript.startedAt}
-              onClick={openTranscript}
-              badge={<NewBadge id={CALL_TRANSCRIPT_FEATURE} />}
-              tip={callTranscriptTip}
-            />
+            <div key="transcript" data-tour="transcript" className="contents">
+              <TranscriptButton
+                status={callTranscript.status}
+                startedAt={callTranscript.startedAt}
+                onClick={openTranscript}
+                badge={<NewBadge id={CALL_TRANSCRIPT_FEATURE} />}
+                tip={callTranscriptTip}
+              />
+            </div>
           ),
         ].filter(Boolean)}
       />
@@ -7867,6 +7887,7 @@ function WatchRoomView({
             if (menuOpen) closeMenu();
             else setMenuOpen(true);
           }}
+          data-tour="more"
           aria-label={translate("watch.watchRoom.moreOptions")}
           className={`shrink-0 rounded-lg border p-2 transition ${menuOpen
             ? "border-zinc-400 bg-zinc-100 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
@@ -8195,6 +8216,7 @@ function WatchRoomView({
                   type="button"
                   onClick={openAddVideoSourcePopup}
                   disabled={Boolean(videoSourceBlockedReason)}
+                  data-tour="video"
                   aria-label={translate("watch.watchRoom.addVideoSource")}
                   className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -8222,6 +8244,7 @@ function WatchRoomView({
               >
                 <button
                   type="button"
+                  data-tour="music"
                   onClick={openAddMusicPopup}
                   disabled={!canManageMusic}
                   aria-label={translate("common.playMusicInTheRoom")}
@@ -8273,6 +8296,7 @@ function WatchRoomView({
                     markFeatureUsed(ROOM_TOOLS_FEATURE);
                     roomTools.togglePanel();
                   }}
+                  data-tour="tools"
                   aria-pressed={toolsPanelOpen}
                   aria-label={translate("roomTools.title")}
                   className="relative flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
@@ -8290,7 +8314,11 @@ function WatchRoomView({
               </Tippy>
               )}
 
-              {canRaiseHand && <RaiseHandButton selfUserId={state.selfUserId} />}
+              {canRaiseHand && (
+                <span data-tour="raiseHand" className="contents">
+                  <RaiseHandButton selfUserId={state.selfUserId} />
+                </span>
+              )}
               </>,
               "flex items-center gap-1.5",
               translate("watch.watchRoom.callDockGap0375rem")
@@ -8315,6 +8343,7 @@ function WatchRoomView({
                     // that now has nothing to show (see RoomCallHost).
                     onDisconnect();
                   }}
+                  data-tour="leave"
                   aria-label={translate("common.leaveTheCall")}
                   className="flex items-center rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-700"
                 >
@@ -8341,6 +8370,7 @@ function WatchRoomView({
             <Tooltip content={linkCopied ? translate("common.linkCopied") : translate("watch.watchRoom.copyThisRoomSLink")}>
               <button
                 type="button"
+                data-tour="invite"
                 onClick={handleCopyLink}
                 aria-label={translate("watch.watchRoom.shareRoom")}
                 className={`hidden shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm font-medium transition sm:flex ${linkCopied
@@ -8769,7 +8799,7 @@ function WatchRoomView({
         {/* Nor while docked — same reason as the bottom bar below: the ad
             in it would be counting impressions nobody saw. */}
         {isWideLayout && visible && !leftSidebarCollapsed && !group && !callLayout && (
-          <aside className="flex h-full w-[300px] shrink-0 flex-col gap-3">
+          <aside data-tour="people" className="flex h-full w-[300px] shrink-0 flex-col gap-3">
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
               <div className="shrink-0 border-b border-zinc-200 px-3 py-2 dark:border-zinc-800">
                 {participantsHeader}
@@ -9120,6 +9150,7 @@ function WatchRoomView({
             practically the whole column to fill. */}
         {isWideLayout && !rightSidebarCollapsed && !callLayout && (
           <aside
+            data-tour="chat"
             ref={chatAsideRef}
             className="relative flex h-full shrink-0 flex-col"
             style={{ width: `${chatWidth}px` }}
@@ -9231,6 +9262,7 @@ function WatchRoomView({
               {/* O Puxador: arrastar ou tocar para expandir menu com mais opções */}
               <button
                 type="button"
+                data-tour="extras"
                 onClick={toggleMobileExtraMenu}
                 aria-label={mobileExtraMenuOpen ? translate("watch.watchRoom.collapseOptions") : translate("watch.watchRoom.moreOptionsPullUp")}
                 aria-expanded={mobileExtraMenuOpen}
@@ -9259,6 +9291,7 @@ function WatchRoomView({
                         setMobileExtraMenuOpen(false);
                       }}
                       disabled={Boolean(videoSourceBlockedReason)}
+                      data-tour="video"
                       aria-label={translate("watch.watchRoom.addVideoSource")}
                       className="flex h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white p-2 text-zinc-700 shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
                     >
@@ -9286,6 +9319,7 @@ function WatchRoomView({
                         setMobileExtraMenuOpen(false);
                       }}
                       disabled={!canManageMusic}
+                      data-tour="music"
                       aria-label={hasMusic || myMusicSlot ? translate("common.changeTheRoomSMusic") : translate("common.playMusicInTheRoom")}
                       className="flex h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white p-2 text-zinc-700 shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
                     >
@@ -9314,6 +9348,7 @@ function WatchRoomView({
                         roomTools.openPanel(true);
                         setMobileExtraMenuOpen(false);
                       }}
+                      data-tour="tools"
                       aria-label={translate("roomTools.title")}
                       className="flex h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white p-2 text-zinc-700 shadow-sm transition active:scale-95 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
                     >
@@ -9343,6 +9378,7 @@ function WatchRoomView({
                         roomTools.raiseHand(!selfHandRaised);
                         setMobileExtraMenuOpen(false);
                       }}
+                      data-tour="raiseHand"
                       aria-pressed={selfHandRaised}
                       aria-label={selfHandRaised ? translate("roomTools.hands.lower") : translate("roomTools.hands.raise")}
                       className={`flex h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl border p-2 shadow-sm transition active:scale-95 ${
@@ -9362,13 +9398,15 @@ function WatchRoomView({
 
                     {/* [gravar chamada] — à esquerda do Stream, como no cartão do desktop */}
                     {showCallRecording && (
-                      <CallRecordButton
-                        variant="tile"
-                        status={callRecording.status}
-                        startedAt={callRecording.startedAt}
-                        onClick={openCallRecording}
-                        tip={callRecordingTip}
-                      />
+                      <div data-tour="record" className="contents">
+                        <CallRecordButton
+                          variant="tile"
+                          status={callRecording.status}
+                          startedAt={callRecording.startedAt}
+                          onClick={openCallRecording}
+                          tip={callRecordingTip}
+                        />
+                      </div>
                     )}
 
                     {/* [stream] */}
@@ -9381,6 +9419,7 @@ function WatchRoomView({
                         }
                         toggleStreamerMode();
                       }}
+                      data-tour="streamer"
                       aria-label={streamerMode ? translate("watch.watchRoom.turnOffStreamerMode") : translate("watch.watchRoom.turnOnStreamerMode")}
                       className={`flex h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl border p-2 shadow-sm transition active:scale-95 ${
                         streamerMode
@@ -9435,6 +9474,7 @@ function WatchRoomView({
                         handleToggleMic();
                       }}
                       disabled={!isMicOn && Boolean(micBlockedReason)}
+                      data-tour="mic"
                       aria-pressed={isMicOn}
                       aria-label={isMicOn ? translate("common.turnOffMicrophone") : translate("common.turnOnMicrophone")}
                       className={`${DOCK_BUTTON} ${isMicOn ? DOCK_ON : DOCK_OFF}`}
@@ -9455,6 +9495,7 @@ function WatchRoomView({
                         toggleMicsMuted();
                       }}
                       aria-pressed={!micsMuted}
+                      data-tour="deafen"
                       aria-label={micsMuted ? translate("common.unmuteMicrophones") : translate("common.muteMicrophones")}
                       className={`${DOCK_BUTTON} ${micsMuted ? DOCK_OFF : DOCK_ON}`}
                     >
@@ -9487,6 +9528,7 @@ function WatchRoomView({
                           type="button"
                           onClick={() => (localCameraStream ? stopCameraShare() : startCameraShare())}
                           disabled={!localCameraStream && Boolean(cameraBlockedReason)}
+                          data-tour="camera"
                           aria-pressed={Boolean(localCameraStream)}
                           aria-label={localCameraStream ? translate("watch.watchRoom.stopCamera") : translate("watch.watchRoom.shareCamera")}
                           className={`${DOCK_BUTTON_BASE} ${
@@ -9624,6 +9666,7 @@ function WatchRoomView({
                           ? Boolean(screenBlockedReason)
                           : screenShareMode !== "display" || (!localStream && Boolean(screenBlockedReason))
                       }
+                      data-tour="screen"
                       aria-pressed={Boolean(localStream)}
                       aria-label={localStream ? translate("watch.watchRoom.stopSharingTheScreen") : translate("watch.watchRoom.shareScreen")}
                       className={`${DOCK_BUTTON} ${
@@ -9647,6 +9690,7 @@ function WatchRoomView({
                         playHangUpSound();
                         onDisconnect();
                       }}
+                      data-tour="leave"
                       aria-label={translate("common.leaveTheCall")}
                       className={`${DOCK_BUTTON} bg-red-600 hover:bg-red-700 active:bg-red-800 text-white`}
                     >
@@ -9671,6 +9715,7 @@ function WatchRoomView({
                       haptic("tap");
                       toggleMobilePanel("chat");
                     }}
+                    data-tour="chat"
                     aria-pressed={mobilePanel === "chat"}
                     className={`${DOCK_TAB} ${mobilePanel === "chat" ? DOCK_TAB_ACTIVE : DOCK_TAB_IDLE}`}
                   >
@@ -9687,6 +9732,7 @@ function WatchRoomView({
                       haptic("tap");
                       toggleMobilePanel("participants");
                     }}
+                    data-tour="people"
                     aria-pressed={mobilePanel === "participants"}
                     className={`${DOCK_TAB} ${mobilePanel === "participants" ? DOCK_TAB_ACTIVE : DOCK_TAB_IDLE}`}
                   >
@@ -9705,6 +9751,26 @@ function WatchRoomView({
           </>
         )}
       </div>
+
+      {/* The first-visit tour of the room's controls (see components/RoomTour):
+          only on the room's own page, once it is joined — not over a docked
+          call on somebody else's page, nor inside a direct call. */}
+      <RoomTour
+        active={visible && !callLayout && Boolean(state.selfId)}
+        // Some steps point inside "⋯" or the phone's pull-up drawer: the
+        // tour opens them for that step and puts them away after.
+        onContainer={(container, open) => {
+          if (container === "menu") {
+            if (open) setMenuOpen(true);
+            else closeMenu();
+          } else if (open) {
+            if (mobilePanel) closeMobilePanel();
+            setMobileExtraMenuOpen(true);
+          } else {
+            setMobileExtraMenuOpen(false);
+          }
+        }}
+      />
 
       <AccountModal
         mode={accountModal}
