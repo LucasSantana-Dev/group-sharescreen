@@ -4881,7 +4881,5 @@
   "admin.permissions.ads": "Ads",
   "admin.permissions.ads.hint": "Partners, ad settings and Monetag.",
   "admin.permissions.logs": "Logs",
-  "admin.permissions.logs.hint": "See the record of what admins did.",
-  "admin.permissions.live_moderation": "Live moderation",
-  "admin.permissions.live_moderation.hint": "The moderation console (rooms, cameras, favorites, banning from inside a room)."
+  "admin.permissions.logs.hint": "See the record of what admins did."
 }

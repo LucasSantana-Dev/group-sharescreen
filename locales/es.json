@@ -4881,7 +4881,5 @@
   "admin.permissions.ads": "Publicidad",
   "admin.permissions.ads.hint": "Socios, configuración de publicidad y Monetag.",
   "admin.permissions.logs": "Registros",
-  "admin.permissions.logs.hint": "Ver el registro de lo que hicieron los admins.",
-  "admin.permissions.live_moderation": "Moderación en vivo",
-  "admin.permissions.live_moderation.hint": "La consola de moderación (salas, cámaras, favoritos, banear desde la sala)."
+  "admin.permissions.logs.hint": "Ver el registro de lo que hicieron los admins."
 }
