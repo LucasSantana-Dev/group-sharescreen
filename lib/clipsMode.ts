@@ -3,6 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { trackFeatureEvent, useFeature } from "./features";
 import { useProtectedRoom } from "./captureProtection";
+import { isNewcomer } from "./newcomer";
 
 // The tile experiments switched on from the room's "Mais opções":
 //   - "Modo clipes": the clip-the-last-30s button (see lib/clipBuffer);
@@ -219,21 +220,6 @@ export function trackTileExperiment(name: string, value?: number) {
   trackFeatureEvent(name, value ? { value: Math.max(1, Math.round(value)) } : {});
 }
 
-// Whether this browser had used GoLive before this page load. Read at module
-// evaluation, before anything on the page mints a device id or caches the
-// feature list, so a first visit cannot count itself as a returning one.
-const wasReturning = (() => {
-  if (typeof window === "undefined") return false;
-  try {
-    return (
-      window.localStorage.getItem("sharescreen:deviceId") !== null ||
-      window.localStorage.getItem("sharescreen:features") !== null
-    );
-  } catch {
-    return false;
-  }
-})();
-
 const listeners = new Set<() => void>();
 function emit() {
   for (const listener of listeners) listener();
@@ -307,11 +293,13 @@ export function useTileExperimentTip(
   const { tipKey, feature } = CONFIG[experiment];
   const everyone = options.everyone ?? false;
   const seen = useSyncExternalStore(subscribe, () => read(tipKey) === "1", () => true);
+  // New to GoLive (see lib/newcomer): nothing here is news yet.
+  const newcomer = useSyncExternalStore(subscribe, isNewcomer, () => false);
   useEffect(() => {
-    if (available && !seen && !wasReturning && !everyone) write(tipKey, "1");
-  }, [available, seen, tipKey, everyone]);
+    if (available && !seen && newcomer && !everyone) write(tipKey, "1");
+  }, [available, seen, newcomer, tipKey, everyone]);
   return {
-    show: available && !seen && (wasReturning || everyone),
+    show: available && !seen && (!newcomer || everyone),
     dismiss: () => write(tipKey, "1"),
     /** The tip's target was clicked while it showed: counted, then gone. */
     clicked: () => {

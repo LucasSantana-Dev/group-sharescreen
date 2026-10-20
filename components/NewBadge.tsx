@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { useT } from "@/lib/useI18n";
+import { isNewcomer } from "@/lib/newcomer";
 
 // The blue "NOVO" on anything just launched. Every new button or feature
 // gets one (see CLAUDE.md), keyed by a stable id:
@@ -12,6 +13,10 @@ import { useT } from "@/lib/useI18n";
 // It goes away for good once the person uses the feature, or a week after
 // this browser first showed it, whichever comes first. Per browser, in
 // localStorage — nothing is sent anywhere.
+//
+// Never for somebody new to GoLive (lib/newcomer): to them every button is
+// new, and a screen full of "NOVO" says nothing. What they meet in their
+// first week is recorded as already used, so it does not light up later.
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const KEY = (id: string) => `sharescreen:newBadge:${id}`;
@@ -54,7 +59,7 @@ export function markFeatureUsed(id: string) {
 
 function isVisible(id: string): boolean {
   const state = read(id);
-  if (!state) return true;
+  if (!state) return !isNewcomer();
   return !state.used && Date.now() - state.firstSeen < WEEK_MS;
 }
 
@@ -63,7 +68,9 @@ export function NewBadge({ id, className = "" }: { id: string; className?: strin
   // Hidden on the server and until storage is read, so it never flashes.
   const visible = useSyncExternalStore(subscribe, () => isVisible(id), () => false);
   useEffect(() => {
-    if (visible && !read(id)) write(id, { firstSeen: Date.now() });
+    if (read(id)) return;
+    if (visible) write(id, { firstSeen: Date.now() });
+    else if (isNewcomer()) write(id, { firstSeen: Date.now(), used: true });
   }, [id, visible]);
   if (!visible) return null;
   return (

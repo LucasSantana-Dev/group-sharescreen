@@ -28,6 +28,7 @@ import { PushRegistrar } from "@/components/PushRegistrar";
 import { ProModalHost } from "@/components/ProModalHost";
 import { NtPopups } from "@/components/NtPopups";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { NEWCOMER_INIT_SCRIPT } from "@/lib/newcomer";
 import { IOS_VIEWPORT_SCRIPT } from "@/lib/iosViewport";
 import { LOCALE_INIT_SCRIPT, LOCALE_TAGS, SERVER_LOCALE } from "@/lib/i18n";
 import { I18nGate } from "@/components/I18nGate";
@@ -294,6 +295,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             parse time and buys never showing a white flash to someone who
             chose the dark theme. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Whether this browser is new to GoLive, recorded before any bundle
+            can write to storage and make it look like a returning one — see
+            lib/newcomer.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: NEWCOMER_INIT_SCRIPT }} />
         {/* Stops iOS zooming into every text box that is focused — see
             lib/iosViewport.ts. Inline and this early because the first thing
             somebody does on a shared room link can be tapping the name field,

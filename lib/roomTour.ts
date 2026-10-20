@@ -45,31 +45,12 @@ function write(value: TourState) {
   for (const listener of listeners) listener();
 }
 
-// Lido na avaliação do módulo, antes de qualquer coisa da página criar um
-// deviceId ou guardar as features (ver o wasReturning de lib/clipsMode). Este
-// módulo entra no carregamento de toda página (WatchRoom vem do RoomCallHost
-// no layout), então quem chega pela home e só depois abre uma sala continua
-// "pendente" — inclusive numa visita seguinte.
-let cached: TourState | null = (() => {
-  if (typeof window === "undefined") return null;
-  const current = read();
-  if (current) return current;
-  let returning = false;
-  try {
-    returning =
-      window.localStorage.getItem("sharescreen:deviceId") !== null ||
-      window.localStorage.getItem("sharescreen:features") !== null;
-  } catch {
-    return null;
-  }
-  const initial: TourState = returning ? "done" : "pending";
-  try {
-    window.localStorage.setItem(STATE_KEY, initial);
-  } catch {
-    // Ver write.
-  }
-  return initial;
-})();
+// "pending" é gravado pelo NEWCOMER_INIT_SCRIPT (lib/newcomer) na primeira
+// página que um navegador novo abre, antes de qualquer bundle rodar — ler isso
+// aqui na avaliação do módulo não servia: outro chunk já tinha criado o
+// deviceId e todo navegador novo parecia antigo. Sem a chave (quem já usava,
+// ou storage recusado): "done".
+let cached: TourState | null = typeof window === "undefined" ? null : read() ?? "done";
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
