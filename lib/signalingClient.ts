@@ -3842,7 +3842,15 @@ export const signalingClient = new SignalingClient();
 // Dead code in a production build: Next inlines `process.env.NODE_ENV`, so
 // the whole block folds away rather than shipping a way to fake server
 // messages to every visitor.
-if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+//
+// Skipped when a shell bridge already owns `window.golive`: the Electron
+// preload exposes it through contextBridge, which makes it read-only, so
+// assigning over it throws and takes the whole page down under `next dev`.
+if (
+  process.env.NODE_ENV === "development" &&
+  typeof window !== "undefined" &&
+  !window.golive
+) {
   (window as unknown as { golive: unknown }).golive = {
     signaling: signalingClient,
     /**
