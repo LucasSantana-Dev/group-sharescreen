@@ -339,6 +339,7 @@ import {
 } from "@/lib/roomThemes";
 import { useT } from "@/lib/useI18n";
 import { RoomTour } from "@/components/RoomTour";
+import { useRoomTour } from "@/lib/roomTour";
 import { MobileSheet } from "@/components/MobileSheet";
 import { canShareNatively, haptic, shareLink } from "@/lib/nativeApp";
 import { useBackHandler } from "@/lib/useBackHandler";
@@ -3321,6 +3322,14 @@ function WatchRoomView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMicOn, isRoomManager, state.roomPermissions.mic, myPermissions?.mic, selfSilenced, selfIsSpeaker]);
 
+  // The first-visit tour (see components/RoomTour) goes first: the map popup
+  // and the mic nudge below wait for it to be skipped or finished instead of
+  // landing on top of it. Only where the tour can run (the room's own page,
+  // not a direct call), and not for somebody on the experiment's control side
+  // (RoomTour marks them done as soon as the answer is known).
+  const roomTour = useRoomTour();
+  const roomTourWaiting = visible && !callLayout && roomTour.pending && (!roomTour.ready || roomTour.enabled);
+
   // "Você criou uma sala pública!" — opened by itself, once, for whoever's
   // join brought the room into existence (see the server's "room-state"
   // `created`). A room is at its most findable the moment it is created and
@@ -3336,7 +3345,7 @@ function WatchRoomView({
   // who already answered it.
   const newRoomPopupShown = useRef(false);
   useEffect(() => {
-    if (!state.roomCreated || privateRoomCannotBeMapped || newRoomPopupShown.current) return;
+    if (!state.roomCreated || privateRoomCannotBeMapped || newRoomPopupShown.current || roomTourWaiting) return;
     const timer = setTimeout(() => {
       newRoomPopupShown.current = true;
       setNewRoomPopupOpen(true);
@@ -3351,7 +3360,7 @@ function WatchRoomView({
       });
     }, NEW_ROOM_POPUP_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [state.roomCreated, privateRoomCannotBeMapped, openPopup]);
+  }, [state.roomCreated, privateRoomCannotBeMapped, roomTourWaiting, openPopup]);
 
   // "Criar tema" on the themes page lands here — an ordinary room, with the
   // editor already open on it.
@@ -3411,7 +3420,7 @@ function WatchRoomView({
     if (!state.name || isMicOn || micBlockedReason || getStoredMicHintSeen()) return;
     // A coach mark opening behind the new-room popup would be spent without
     // ever being read — it waits for that to be dealt with first.
-    if (newRoomPopupOpen) return;
+    if (newRoomPopupOpen || roomTourWaiting) return;
     // Late enough not to land on top of a room still connecting, early
     // enough to still be the first thing someone reads about the room.
     const timer = setTimeout(() => {
@@ -3422,7 +3431,7 @@ function WatchRoomView({
       setStoredMicHintSeen(true);
     }, MIC_HINT_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [state.name, isMicOn, micBlockedReason, newRoomPopupOpen]);
+  }, [state.name, isMicOn, micBlockedReason, newRoomPopupOpen, roomTourWaiting]);
 
   useEffect(() => {
     if (localStream && !canUseRoomPermission("screen")) stopShare();

@@ -89,6 +89,20 @@ function measureNode(node: HTMLElement): Rect | null {
   return { top, left, width: right - left, height: bottom - top };
 }
 
+// O "⋯" e os outros painéis abertos por clique são Tippy (z-index 9999): o
+// destaque e o balão precisam ficar acima deles, senão o balão de um item do
+// menu é desenhado *atrás* do próprio menu.
+const Z_DIM = 10000;
+const Z_BUBBLE = 10001;
+
+/** A caixa do painel flutuante (o "⋯") onde o alvo mora, se mora num. */
+function popoverBox(node: HTMLElement): Rect | null {
+  const root = node.closest<HTMLElement>("[data-tippy-root]");
+  if (!root) return null;
+  const box = (root.firstElementChild as HTMLElement | null)?.getBoundingClientRect() ?? root.getBoundingClientRect();
+  return box.width > 0 && box.height > 0 ? { top: box.top, left: box.left, width: box.width, height: box.height } : null;
+}
+
 function findTarget(target: string): { node: HTMLElement; rect: Rect } | null {
   const nodes = document.querySelectorAll<HTMLElement>(`[data-tour="${target}"]`);
   for (const node of nodes) {
@@ -122,7 +136,7 @@ export function RoomTour({
   const [steps, setSteps] = useState<Step[] | null>(null);
   const [rawIndex, setIndex] = useState(0);
   // A medida é do passo em que foi feita: trocar de passo zera sozinho.
-  const [measured, setMeasured] = useState<{ step: Step; rect: Rect } | null>(null);
+  const [measured, setMeasured] = useState<{ step: Step; rect: Rect; box: Rect | null } | null>(null);
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
 
   const onContainerRef = useRef(onContainer);
@@ -159,7 +173,13 @@ export function RoomTour({
       }
       // Os que moram num contêiner fechado só são conferidos na vez deles.
       const available = STEPS.filter((step) => !step.target || step.containers || findTarget(step.target));
-      if (!available.some((step) => step.target && findTarget(step.target))) return;
+      // Os controles ainda não estão na tela (a sala montando): tenta de novo
+      // — desistir aqui deixaria o tour "pendente" para sempre, segurando a
+      // dica do microfone e o mapa da sala nova (ver roomTourWaiting no WatchRoom).
+      if (!available.some((step) => step.target && findTarget(step.target))) {
+        timer = window.setTimeout(tryStart, 1000);
+        return;
+      }
       setSteps(available);
       setIndex(0);
       trackRoomTour(ROOM_TOUR_EVENTS.start, available.length);
@@ -172,6 +192,7 @@ export function RoomTour({
   const index = steps ? Math.min(rawIndex, steps.length - 1) : 0;
   const step = steps?.[index] ?? null;
   const rect = measured && measured.step === step ? measured.rect : null;
+  const box = measured && measured.step === step ? measured.box : null;
   const running = Boolean(step) && pending;
 
   useEffect(() => {
@@ -240,7 +261,10 @@ export function RoomTour({
           const again = findTarget(step.target);
           if (again) found.rect = again.rect;
         }
-        setMeasured((m) => (m && m.step === step && sameRect(m.rect, found.rect) ? m : { step, rect: found.rect }));
+        const box = popoverBox(found.node);
+        setMeasured((m) =>
+          m && m.step === step && sameRect(m.rect, found.rect) && sameRect(m.box, box) ? m : { step, rect: found.rect, box }
+        );
         return;
       }
       setMeasured((m) => (m && m.step === step ? null : m));
@@ -305,8 +329,26 @@ export function RoomTour({
   // (a coluna do chat, a lista de pessoas) ganha o balão ao lado.
   let bubbleStyle: CSSProperties;
   let arrow: { side: "top" | "bottom" | "left" | "right"; offset: number } | null = null;
+  // Dentro do "⋯": ao lado do menu inteiro, apontando para a linha — em
+  // cima ou embaixo da linha, o balão cobriria os itens vizinhos do menu.
+  const sideOfBox = (() => {
+    if (!rect || !box) return null;
+    const roomLeft = box.left - GAP - MARGIN;
+    const roomRight = vw - (box.left + box.width) - GAP - MARGIN;
+    if (roomLeft < width && roomRight < width) return null;
+    const onLeft = roomLeft >= width;
+    const centerY = rect.top + rect.height / 2;
+    const top = Math.min(Math.max(MARGIN, centerY - 40), vh - 200);
+    return {
+      style: { top, left: onLeft ? box.left - GAP - width : box.left + box.width + GAP } as CSSProperties,
+      arrow: { side: (onLeft ? "right" : "left") as "left" | "right", offset: Math.min(Math.max(16, centerY - top), 160) },
+    };
+  })();
   if (!rect) {
     bubbleStyle = { left: (vw - width) / 2, top: Math.max(MARGIN, vh / 2 - 110) };
+  } else if (sideOfBox) {
+    bubbleStyle = sideOfBox.style;
+    arrow = sideOfBox.arrow;
   } else {
     const centerX = rect.left + rect.width / 2;
     const tall = rect.height > vh * 0.45;
@@ -359,8 +401,9 @@ export function RoomTour({
       {rect ? (
         <div
           aria-hidden
-          className="pointer-events-none fixed z-[1100] rounded-xl ring-2 ring-blue-500 transition-all duration-200"
+          className="pointer-events-none fixed rounded-xl ring-2 ring-blue-500 transition-all duration-200"
           style={{
+            zIndex: Z_DIM,
             top: rect.top - PAD,
             left: rect.left - PAD,
             width: rect.width + PAD * 2,
@@ -369,7 +412,7 @@ export function RoomTour({
           }}
         />
       ) : (
-        <div aria-hidden className="pointer-events-none fixed inset-0 z-[1100] bg-black/50" />
+        <div aria-hidden className="pointer-events-none fixed inset-0 bg-black/50" style={{ zIndex: Z_DIM }} />
       )}
       <div
         role="dialog"
@@ -379,8 +422,8 @@ export function RoomTour({
         // Clicar em "Próximo" não é clicar fora do "⋯" aberto pelo tour
         // (ver Popover em components/Tooltip).
         data-keep-popovers=""
-        className="fixed z-[1101] rounded-xl bg-blue-600 p-4 text-left text-white shadow-2xl transition-[top,left,bottom] duration-200"
-        style={{ ...bubbleStyle, width }}
+        className="fixed rounded-xl bg-blue-600 p-4 text-left text-white shadow-2xl transition-[top,left,bottom] duration-200"
+        style={{ ...bubbleStyle, width, zIndex: Z_BUBBLE }}
       >
         {arrowStyle && <span className={arrowClass} style={arrowStyle} />}
         {position > 0 && (
