@@ -57,6 +57,10 @@ const STEPS: Step[] = [
 ];
 
 const START_DELAY_MS = 1500;
+// A conferência do "⋯" e da gaveta durante a boas-vindas (ver probing):
+// leituras de PROBE_MS até a contagem de alvos parar de mudar.
+const PROBE_MS = 100;
+const PROBE_TRIES = 15;
 const MEASURE_MS = 200;
 // Medidas sem achar o alvo antes de desistir: mais folga logo depois de abrir
 // um contêiner (o "⋯" entra animado), quase nenhuma quando ele já estava aberto.
@@ -138,6 +142,11 @@ export function RoomTour({
   // A medida é do passo em que foi feita: trocar de passo zera sozinho.
   const [measured, setMeasured] = useState<{ step: Step; rect: Rect; box: Rect | null } | null>(null);
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
+  // Durante a boas-vindas, o tour abre o "⋯" (e a gaveta do celular) às
+  // escondidas e anota quais dos seus passos existem para esta pessoa. Sem
+  // isso, eles só eram conferidos na vez deles e os ausentes iam sumindo no
+  // caminho: o "3 de 24" virava "9 de 18" e o tour acabava antes do total.
+  const [probing, setProbing] = useState(false);
 
   const onContainerRef = useRef(onContainer);
   useEffect(() => {
@@ -171,7 +180,7 @@ export function RoomTour({
         timer = window.setTimeout(tryStart, 1000);
         return;
       }
-      // Os que moram num contêiner fechado só são conferidos na vez deles.
+      // Os que moram num contêiner fechado são conferidos logo depois (probing).
       const available = STEPS.filter((step) => !step.target || step.containers || findTarget(step.target));
       // Os controles ainda não estão na tela (a sala montando): tenta de novo
       // — desistir aqui deixaria o tour "pendente" para sempre, segurando a
@@ -182,11 +191,47 @@ export function RoomTour({
       }
       setSteps(available);
       setIndex(0);
-      trackRoomTour(ROOM_TOUR_EVENTS.start, available.length);
+      setProbing(true);
     };
     timer = window.setTimeout(tryStart, START_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [active, pending, enabled, steps]);
+
+  useEffect(() => {
+    if (!probing || !steps) return;
+    let cancelled = false;
+    const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+    void (async () => {
+      const found = new Set<Step>();
+      // A gaveta só existe no celular.
+      const containers: TourContainer[] = findTarget("extras") ? ["extras", "menu"] : ["menu"];
+      for (const container of containers) {
+        const wanted = steps.filter((s) => s.target && s.containers?.includes(container) && !found.has(s));
+        if (wanted.length === 0) continue;
+        onContainerRef.current(container, true);
+        let last = -1;
+        let stable = 0;
+        for (let i = 0; i < PROBE_TRIES && stable < 2 && !cancelled; i++) {
+          await sleep(PROBE_MS);
+          const count = wanted.filter((s) => findTarget(s.target!)).length;
+          stable = count > 0 && count === last ? stable + 1 : 0;
+          last = count;
+        }
+        for (const s of wanted) if (findTarget(s.target!)) found.add(s);
+        onContainerRef.current(container, false);
+        if (cancelled) return;
+        await sleep(PROBE_MS);
+        if (cancelled) return;
+      }
+      const final = steps.filter((s) => !s.containers || found.has(s));
+      setSteps(final);
+      setProbing(false);
+      trackRoomTour(ROOM_TOUR_EVENTS.start, final.length);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [probing, steps]);
 
   // Passos podem sumir no caminho (ver drop): o índice nunca passa do fim.
   const index = steps ? Math.min(rawIndex, steps.length - 1) : 0;
@@ -208,6 +253,7 @@ export function RoomTour({
       setContainer(null);
       finish();
       setSteps(null);
+      setProbing(false);
     },
     [finish, step, setContainer]
   );
@@ -215,11 +261,11 @@ export function RoomTour({
   // Para que lado andar quando um passo some no caminho.
   const directionRef = useRef<1 | -1>(1);
   const next = useCallback(() => {
-    if (!steps) return;
+    if (!steps || probing) return;
     directionRef.current = 1;
     if (index >= steps.length - 1) close(true);
     else setIndex(index + 1);
-  }, [steps, index, close]);
+  }, [steps, probing, index, close]);
   const back = useCallback(() => {
     directionRef.current = -1;
     setIndex(Math.max(0, index - 1));
@@ -398,6 +444,8 @@ export function RoomTour({
 
   return createPortal(
     <>
+      {/* O "⋯" e a gaveta abertos só para a conferência: medidos, não vistos. */}
+      {probing && <style>{"[data-tippy-root],[data-room-tour-probe-hide]{visibility:hidden!important}"}</style>}
       {rect ? (
         <div
           aria-hidden
@@ -454,8 +502,9 @@ export function RoomTour({
           <button
             type="button"
             onClick={next}
+            disabled={probing}
             autoFocus
-            className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-50"
+            className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-50 disabled:cursor-wait disabled:opacity-70"
           >
             {index === 0 && !step.target ? t("roomTour.start") : isLast ? t("roomTour.done") : t("roomTour.next")}
           </button>

@@ -9290,7 +9290,10 @@ function WatchRoomView({
 
               {/* O Menu Expandido: [fonte de video] [musica] [gravar chamada] [stream] */}
               {mobileExtraMenuOpen && (
-                <div className="border-b border-zinc-200 bg-zinc-50/90 px-3 py-2.5 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90 transition-all">
+                <div
+                  // Escondida enquanto o tour confere o que tem aqui (ver RoomTour).
+                  data-room-tour-probe-hide=""
+                  className="border-b border-zinc-200 bg-zinc-50/90 px-3 py-2.5 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90 transition-all">
                   <div className={`grid gap-2 ${showCallRecording ? "grid-cols-4" : "grid-cols-3"}`}>
                     {/* [fonte de video] */}
                     <button
