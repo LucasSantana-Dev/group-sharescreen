@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { FaDiscord } from "react-icons/fa";
-import { MdOutlineAdsClick, MdOutlinePeopleAlt, MdOutlineRemoveRedEye, MdCheck } from "react-icons/md";
+import { MdOutlineAdsClick, MdOutlinePeopleAlt, MdOutlineRemoveRedEye, MdCheck, MdClose } from "react-icons/md";
 import useNtPopups from "ntpopups";
 import { CustomizerPreview } from "@/components/PartnerAdCustomizer";
 import { partnerRewardPopupSize, type PartnerRewardPopupData } from "@/components/PartnerRewardModal";
@@ -89,6 +90,46 @@ export function PartnerDiscordBanner({
         {t("partnerOrders.discord.cta")}
       </span>
     </a>
+  );
+}
+
+/**
+ * The Discord way out, pinned to the bottom-right corner of the screen so it
+ * is in reach on every step without taking a column. A compact pill on small
+ * screens, where a full card would sit over the form; closable either way.
+ */
+export function PartnerDiscordFloating({ source }: { source: string }) {
+  const t = useT();
+  const [closed, setClosed] = useState(false);
+  if (closed) return null;
+  return (
+    <div data-source={source} className="fixed bottom-4 right-4 z-40">
+      {/* Small screens: just the button. */}
+      <a
+        href={PARTNER_DISCORD_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => trackPartnerOrderEvent(SELF_SERVE_PARTNER_EVENTS.discordClick)}
+        className="flex items-center gap-2 rounded-full bg-[#5865f2] px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-95 lg:hidden"
+      >
+        <FaDiscord className="h-5 w-5 shrink-0" />
+        {t("partnerOrders.discord.cta")}
+      </a>
+      {/* Large screens: the whole card. */}
+      <div className="relative hidden w-80 lg:block">
+        <button
+          type="button"
+          onClick={() => setClosed(true)}
+          aria-label={t("common.close")}
+          className="absolute right-2 top-2 z-10 rounded-full p-1 text-white/80 transition hover:bg-white/15 hover:text-white"
+        >
+          <MdClose className="h-4 w-4" />
+        </button>
+        <div className="shadow-xl">
+          <PartnerDiscordBanner source={source} stacked />
+        </div>
+      </div>
+    </div>
   );
 }
 

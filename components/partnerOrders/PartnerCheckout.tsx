@@ -176,7 +176,6 @@ export function PartnerCheckout({
           ? t("partnerOrders.checkout.preparing")
           : t("partnerOrders.checkout.pay", { amount: amountLabel })}
       </button>
-      <p className="text-center text-[11px] text-zinc-500 dark:text-zinc-400">{t("partnerOrders.checkout.reviewNotice")}</p>
 
       <PixChargeModal
         charge={pix}

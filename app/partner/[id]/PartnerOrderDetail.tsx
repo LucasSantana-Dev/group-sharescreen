@@ -17,7 +17,7 @@ import { PartnerReportClient } from "@/app/ad/[token]/PartnerReportClient";
 import { creativeProblem, PartnerCreativeForm } from "@/components/partnerOrders/PartnerCreativeForm";
 import { PartnerCheckout } from "@/components/partnerOrders/PartnerCheckout";
 import {
-  PartnerDiscordBanner,
+  PartnerDiscordFloating,
   PartnerPreviewPanel,
   PartnerStatusPill,
 } from "@/components/partnerOrders/PartnerOrderParts";
@@ -181,7 +181,7 @@ export function PartnerOrderDetail({ id }: { id: string }) {
     current.status === "approved" ? t("partnerOrders.detail.sendEdit") : current.status === "rejected" ? t("partnerOrders.detail.resubmit") : t("common.saveChanges");
 
   return (
-    <main className="mx-auto w-full max-w-7xl grow px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-7xl grow px-4 pb-24 pt-6 sm:px-6">
       <Link
         href="/partner"
         className="flex w-fit items-center gap-1 text-sm text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -378,7 +378,6 @@ export function PartnerOrderDetail({ id }: { id: string }) {
             <Row label={t("partnerOrders.detail.endsAt")} value={when(current.endsAt)} />
             <Row label={t("partnerOrders.detail.method")} value={current.paymentMethod === "card" ? t("partnerOrders.checkout.card") : current.paymentMethod === "pix" ? "Pix" : "—"} />
           </dl>
-          <PartnerDiscordBanner source="detail" stacked />
         </aside>
       </div>
 
@@ -388,6 +387,7 @@ export function PartnerOrderDetail({ id }: { id: string }) {
           <PartnerReportClient token={current.reportToken} />
         </section>
       )}
+      <PartnerDiscordFloating source="detail" />
     </main>
   );
 }

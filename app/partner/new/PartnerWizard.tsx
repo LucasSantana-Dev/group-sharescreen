@@ -7,7 +7,7 @@ import { MdArrowBack, MdArrowForward, MdCheck } from "react-icons/md";
 import { creativeProblem, PartnerCreativeForm } from "@/components/partnerOrders/PartnerCreativeForm";
 import {
   PartnerAudienceStats,
-  PartnerDiscordBanner,
+  PartnerDiscordFloating,
   PartnerPackagePicker,
   PartnerPreviewPanel,
 } from "@/components/partnerOrders/PartnerOrderParts";
@@ -203,7 +203,7 @@ export function PartnerWizard() {
   if (!loading && !account) return <PartnerSignInGate />;
 
   return (
-    <main className="mx-auto w-full max-w-7xl grow px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-7xl grow px-4 pb-24 pt-6 sm:px-6">
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/partner"
@@ -262,7 +262,6 @@ export function PartnerWizard() {
                 ) : (
                   <PartnerPackagePicker packages={config.packages} value={packageId} onChange={setPackageId} />
                 )}
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t("partnerOrders.wizard.planHint")}</p>
               </section>
               <PartnerAudienceStats />
             </div>
@@ -287,11 +286,6 @@ export function PartnerWizard() {
                     value={String((creative.schedules ?? []).length || t("partnerOrders.wizard.none"))}
                   />
                 </dl>
-                <ul className="mt-4 flex flex-col gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
-                  <li>• {t("partnerOrders.wizard.ruleReview")}</li>
-                  <li>• {t("partnerOrders.wizard.ruleStart")}</li>
-                  <li>• {t("partnerOrders.wizard.ruleEdit")}</li>
-                </ul>
               </section>
               {config && pkg && (
                 <section className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
@@ -351,7 +345,8 @@ export function PartnerWizard() {
           {/* Not beside the price when that is the very first screen — there
               is no card yet. Creative-first reaches the price with one. */}
           {!(stepKey === "plan" && step === 0) && <PartnerPreviewPanel creative={creative} />}
-          {pkg && (
+          {/* The chosen period, only once it has been chosen on its own step. */}
+          {pkg && step > stepOrder.indexOf("plan") && (
             <div className="rounded-xl border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("partnerOrders.wizard.summaryDuration")}</p>
               <p className="flex items-baseline justify-between gap-2 font-semibold text-zinc-950 dark:text-zinc-50">
@@ -360,9 +355,9 @@ export function PartnerWizard() {
               </p>
             </div>
           )}
-          <PartnerDiscordBanner source="wizard" stacked />
         </aside>
       </div>
+      <PartnerDiscordFloating source="wizard" />
     </main>
   );
 }
