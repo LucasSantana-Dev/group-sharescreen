@@ -89,6 +89,9 @@ export type PartnerOrder = {
   live: boolean;
   reportToken: string | null;
   partnerId: string | null;
+  /** Bought without an account: reached through its key (see partnerOrderShareLink). */
+  guest?: boolean;
+  contactEmail?: string | null;
   stats?: (PartnerStats & { uniqueViews?: number }) | null;
 };
 
@@ -117,14 +120,55 @@ export class PartnerOrderError extends Error {
   }
 }
 
-async function call<T>(path: string, init?: RequestInit & { auth?: boolean }): Promise<T> {
+// --- Order keys --------------------------------------------------------------
+//
+// Buying an ad does not need an account. Every order comes with a secret key
+// (see the API's PartnerOrderDoc.accessKey), kept here in this browser and in
+// the link we email; holding it is what lets someone without an account see,
+// edit and pay for their order. Sent in the X-Partner-Order-Key header.
+
+const KEYS_STORAGE = "golive:partner-order-keys";
+
+function readKeys(): Record<string, string> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(KEYS_STORAGE) ?? "{}") as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Keeps an order's key in this browser (from creating it, or from the emailed link). */
+export function rememberPartnerOrderKey(id: string, key: string) {
+  try {
+    localStorage.setItem(KEYS_STORAGE, JSON.stringify({ ...readKeys(), [id]: key }));
+  } catch {
+    // Private window: the key lives in the URL and the email instead.
+  }
+}
+
+export function partnerOrderKey(id: string): string | null {
+  return readKeys()[id] ?? null;
+}
+
+/** The order's own link, key included — what someone without an account keeps. */
+export function partnerOrderShareLink(id: string): string | null {
+  const key = partnerOrderKey(id);
+  if (!key || typeof window === "undefined") return null;
+  return `${window.location.origin}/partner/${encodeURIComponent(id)}?key=${encodeURIComponent(key)}`;
+}
+
+async function call<T>(path: string, init?: RequestInit & { auth?: boolean; orderId?: string }): Promise<T> {
   const token = getAccountToken();
-  if (init?.auth !== false && !token) throw new PartnerOrderError("unauthorized", null);
+  // Only the admin routes insist on an account; an advertiser may have none.
+  if (init?.auth === true && !token) throw new PartnerOrderError("unauthorized", null);
+  const key = init?.orderId ? partnerOrderKey(init.orderId) : null;
   const res = await fetch(`${getSignalingHttpBase()}${path}`, {
     ...init,
     headers: {
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(key ? { "X-Partner-Order-Key": key } : {}),
       ...(init?.headers ?? {}),
     },
   });
@@ -140,24 +184,56 @@ async function call<T>(path: string, init?: RequestInit & { auth?: boolean }): P
 }
 
 export function fetchPartnerOrderConfig(): Promise<PartnerOrderConfig> {
-  return call("/partner-orders/config", { auth: false });
+  return call("/partner-orders/config");
 }
 
+/**
+ * Moves an order made without an account onto the signed-in one (see the
+ * API's POST /partner-orders/:id/claim). Done on its own as soon as somebody
+ * who advertised as a guest is signed in and the order is loaded: their ads
+ * follow them into the account, with pushes from then on.
+ */
+async function claimIfSignedIn(order: PartnerOrder): Promise<PartnerOrder> {
+  if (!order.guest || !getAccountToken() || !partnerOrderKey(order.id)) return order;
+  try {
+    const data = await call<{ order: PartnerOrder }>(`/partner-orders/${encodeURIComponent(order.id)}/claim`, {
+      method: "POST",
+      body: JSON.stringify({}),
+      orderId: order.id,
+    });
+    return { ...order, ...data.order, stats: order.stats };
+  } catch {
+    return order;
+  }
+}
+
+/** The account's orders plus every order this browser holds the key to. */
 export async function fetchMyPartnerOrders(): Promise<PartnerOrder[]> {
-  return (await call<{ orders: PartnerOrder[] }>("/partner-orders")).orders;
+  const keys = Object.entries(readKeys()).map(([id, key]) => ({ id, key }));
+  const { orders } = await call<{ orders: PartnerOrder[] }>("/partner-orders/list", {
+    method: "POST",
+    body: JSON.stringify({ keys }),
+  });
+  return Promise.all(orders.map(claimIfSignedIn));
 }
 
 export async function fetchPartnerOrder(id: string, signal?: AbortSignal): Promise<PartnerOrder> {
-  return (await call<{ order: PartnerOrder }>(`/partner-orders/${encodeURIComponent(id)}`, { signal })).order;
+  const order = (await call<{ order: PartnerOrder }>(`/partner-orders/${encodeURIComponent(id)}`, { signal, orderId: id })).order;
+  return claimIfSignedIn(order);
 }
 
-export async function createPartnerOrder(packageId: string, creative: PartnerCreative): Promise<PartnerOrder> {
-  return (
-    await call<{ order: PartnerOrder }>("/partner-orders", {
-      method: "POST",
-      body: JSON.stringify({ packageId, creative }),
-    })
-  ).order;
+/** `email` is required without an account: where the order's link and news go. */
+export async function createPartnerOrder(
+  packageId: string,
+  creative: PartnerCreative,
+  email?: string
+): Promise<PartnerOrder> {
+  const data = await call<{ order: PartnerOrder; accessKey?: string }>("/partner-orders", {
+    method: "POST",
+    body: JSON.stringify({ packageId, creative, ...(email ? { email } : {}) }),
+  });
+  if (data.accessKey) rememberPartnerOrderKey(data.order.id, data.accessKey);
+  return data.order;
 }
 
 export async function updatePartnerOrder(
@@ -167,6 +243,7 @@ export async function updatePartnerOrder(
 ): Promise<PartnerOrder> {
   return (
     await call<{ order: PartnerOrder }>(`/partner-orders/${encodeURIComponent(id)}`, {
+      orderId: id,
       method: "PUT",
       body: JSON.stringify({ creative, ...(packageId ? { packageId } : {}) }),
     })
@@ -176,13 +253,14 @@ export async function updatePartnerOrder(
 export async function withdrawPartnerOrderEdit(id: string): Promise<PartnerOrder> {
   return (
     await call<{ order: PartnerOrder }>(`/partner-orders/${encodeURIComponent(id)}/pending-edit`, {
+      orderId: id,
       method: "DELETE",
     })
   ).order;
 }
 
 export async function deletePartnerOrder(id: string): Promise<void> {
-  await call<void>(`/partner-orders/${encodeURIComponent(id)}`, { method: "DELETE" });
+  await call<void>(`/partner-orders/${encodeURIComponent(id)}`, { method: "DELETE", orderId: id });
 }
 
 export function startPartnerCheckout(
@@ -191,6 +269,7 @@ export function startPartnerCheckout(
   extra: { email?: string; taxId?: string } = {}
 ): Promise<PartnerCheckoutResult> {
   return call(`/partner-orders/${encodeURIComponent(id)}/checkout`, {
+    orderId: id,
     method: "POST",
     body: JSON.stringify({ method, ...extra }),
   });
@@ -199,16 +278,17 @@ export function startPartnerCheckout(
 // --- Admin -----------------------------------------------------------------
 
 export async function fetchPartnerOrdersPendingCount(): Promise<number> {
-  return (await call<{ count: number }>("/admin/partner-orders/pending-count")).count;
+  return (await call<{ count: number }>("/admin/partner-orders/pending-count", { auth: true })).count;
 }
 
 export function fetchAdminPartnerOrders(): Promise<{ orders: AdminPartnerOrder[]; pendingCount: number }> {
-  return call("/admin/partner-orders");
+  return call("/admin/partner-orders", { auth: true });
 }
 
 export async function approvePartnerOrder(id: string): Promise<AdminPartnerOrder> {
   return (
     await call<{ order: AdminPartnerOrder }>(`/admin/partner-orders/${encodeURIComponent(id)}/approve`, {
+      auth: true,
       method: "POST",
       body: JSON.stringify({}),
     })
@@ -218,6 +298,7 @@ export async function approvePartnerOrder(id: string): Promise<AdminPartnerOrder
 export async function rejectPartnerOrder(id: string, note: string): Promise<AdminPartnerOrder> {
   return (
     await call<{ order: AdminPartnerOrder }>(`/admin/partner-orders/${encodeURIComponent(id)}/reject`, {
+      auth: true,
       method: "POST",
       body: JSON.stringify({ note }),
     })

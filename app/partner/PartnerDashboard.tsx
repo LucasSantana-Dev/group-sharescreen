@@ -9,8 +9,12 @@ import { useFeature } from "@/lib/features";
 import { formatLocale } from "@/lib/i18n";
 import { useT } from "@/lib/useI18n";
 import { SELF_SERVE_PARTNER_FEATURE, fetchMyPartnerOrders, packageDurationLabel, type PartnerOrder } from "@/lib/partnerOrders";
-import { PartnerAudienceStats, PartnerDiscordBanner, PartnerStatusPill } from "@/components/partnerOrders/PartnerOrderParts";
-import { PartnerSignInGate } from "./PartnerSignInGate";
+import {
+  PartnerAccountSuggestion,
+  PartnerAudienceStats,
+  PartnerDiscordBanner,
+  PartnerStatusPill,
+} from "@/components/partnerOrders/PartnerOrderParts";
 
 // "Meus anúncios": every order this account made, the running ones first,
 // with the numbers that matter at a glance. Each opens its own page.
@@ -27,7 +31,10 @@ export function PartnerDashboard() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!account) return;
+    // Signed in or not: the account's orders plus the ones this browser holds
+    // keys to (see fetchMyPartnerOrders). Waits for the session to settle so
+    // the first answer already includes the account's.
+    if (loading) return;
     let cancelled = false;
     const load = () =>
       fetchMyPartnerOrders()
@@ -45,9 +52,7 @@ export function PartnerDashboard() {
       cancelled = true;
       clearInterval(id);
     };
-  }, [account]);
-
-  if (!loading && !account) return <PartnerSignInGate />;
+  }, [account, loading]);
 
   const live = orders?.filter((o) => o.live) ?? [];
   const totals = live.reduce(
@@ -77,6 +82,14 @@ export function PartnerDashboard() {
           {t("partnerOrders.createAd")}
         </Link>
       </div>
+
+      {/* No account needed — but this browser only knows the orders it made. */}
+      {!loading && !account && (
+        <div className="mt-4 flex flex-col gap-2">
+          <PartnerAccountSuggestion />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("partnerOrders.dashboard.guestHint")}</p>
+        </div>
+      )}
 
       {live.length > 0 && (
         <div className="mt-5 grid grid-cols-3 gap-2">

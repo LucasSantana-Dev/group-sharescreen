@@ -689,17 +689,19 @@ export function uploadPartnerMedia(
   file: File,
   onProgress?: (fraction: number) => void,
   signal?: AbortSignal,
-  // "/partner-orders/upload" for the self-serve dashboard, where any signed-in
-  // account uploads its own ad's media (nothing goes live before review).
+  // "/partner-orders/upload" for the self-serve dashboard, where an advertiser
+  // uploads their own ad's media — with or without an account (nothing goes
+  // live before review).
   endpoint = "/admin/partners/upload"
 ): Promise<string> {
   const token = getAccountToken();
-  if (!token) return Promise.reject(new Error("unauthorized"));
+  const advertiser = endpoint !== "/admin/partners/upload";
+  if (!token && !advertiser) return Promise.reject(new Error("unauthorized"));
   const query = new URLSearchParams({ type: file.type, name: file.name });
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${getSignalingHttpBase()}${endpoint}?${query.toString()}`);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress?.(event.loaded / event.total);

@@ -17,6 +17,7 @@ import { PartnerReportClient } from "@/app/ad/[token]/PartnerReportClient";
 import { creativeProblem, PartnerCreativeForm } from "@/components/partnerOrders/PartnerCreativeForm";
 import { PartnerCheckout } from "@/components/partnerOrders/PartnerCheckout";
 import {
+  PartnerAccountSuggestion,
   PartnerDiscordFloating,
   PartnerPreviewPanel,
   PartnerStatusPill,
@@ -28,6 +29,8 @@ import {
   SELF_SERVE_PARTNER_EVENTS,
   creativeOf,
   deletePartnerOrder,
+  partnerOrderShareLink,
+  rememberPartnerOrderKey,
   fetchPartnerOrder,
   fetchPartnerOrderConfig,
   packageDurationLabel,
@@ -38,7 +41,6 @@ import {
   type PartnerOrder,
   type PartnerOrderConfig,
 } from "@/lib/partnerOrders";
-import { PartnerSignInGate } from "../PartnerSignInGate";
 
 // One ad: where it stands, what it says, how it is doing — and changing it.
 // A running ad keeps running as it was while an edit waits for review.
@@ -64,13 +66,18 @@ export function PartnerOrderDetail({ id }: { id: string }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     fetchPartnerOrderConfig().then(setConfig).catch(() => undefined);
   }, []);
 
   useEffect(() => {
-    if (!account) return;
+    // The emailed link carries the order's key: kept in this browser, so the
+    // order is reachable without an account from here on.
+    const key = search.get("key");
+    if (key) rememberPartnerOrderKey(id, key);
+    if (loading) return;
     let cancelled = false;
     const controller = new AbortController();
     const load = () =>
@@ -88,9 +95,7 @@ export function PartnerOrderDetail({ id }: { id: string }) {
       controller.abort();
       clearInterval(timer);
     };
-  }, [account, id]);
-
-  if (!loading && !account) return <PartnerSignInGate />;
+  }, [account, loading, id, search]);
 
   if (notFound) {
     return (
@@ -165,6 +170,18 @@ export function PartnerOrderDetail({ id }: { id: string }) {
     }
   }
 
+  async function copyOrderLink() {
+    const link = partnerOrderShareLink(current.id);
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // Nothing to fall back to but the email we sent.
+    }
+  }
+
   async function copyReport() {
     if (!reportUrl) return;
     try {
@@ -196,6 +213,31 @@ export function PartnerOrderDetail({ id }: { id: string }) {
       <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
         {packageDurationLabel(current.hours)} · {current.amountLabel} · {t("partnerOrders.detail.createdAt", { date: when(current.createdAt) })}
       </p>
+
+      {/* Bought without an account: this link is the only way back. */}
+      {current.guest && partnerOrderShareLink(current.id) && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+          <p className="min-w-0 flex-1">
+            {current.contactEmail
+              ? t("partnerOrders.detail.keepLinkEmail", { email: current.contactEmail })
+              : t("partnerOrders.detail.keepLink")}
+          </p>
+          <button
+            type="button"
+            onClick={() => void copyOrderLink()}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-500"
+          >
+            <MdContentCopy className="h-4 w-4" />
+            {linkCopied ? t("common.linkCopied") : t("partnerOrders.detail.copyOrderLink")}
+          </button>
+        </div>
+      )}
+
+      {current.guest && !account && !loading && (
+        <div className="mt-3">
+          <PartnerAccountSuggestion compact />
+        </div>
+      )}
 
       {/* Where it stands, and what to do about it. */}
       <div className="mt-5">

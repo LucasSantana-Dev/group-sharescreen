@@ -7,12 +7,12 @@ import { MdArrowBack, MdArrowForward, MdCheck } from "react-icons/md";
 import { creativeProblem, PartnerCreativeForm } from "@/components/partnerOrders/PartnerCreativeForm";
 import {
   PartnerAudienceStats,
+  PartnerAccountSuggestion,
   PartnerDiscordFloating,
   PartnerPackagePicker,
   PartnerPreviewPanel,
 } from "@/components/partnerOrders/PartnerOrderParts";
 import { PartnerCheckout } from "@/components/partnerOrders/PartnerCheckout";
-import { PartnerSignInGate } from "../PartnerSignInGate";
 import { useAuth } from "@/lib/AuthContext";
 import { useFeature } from "@/lib/features";
 import { useT } from "@/lib/useI18n";
@@ -117,7 +117,7 @@ export function PartnerWizard() {
     restored.current = true;
     const from = search.get("from");
     const pkg = search.get("package");
-    if (from && account) {
+    if (from) {
       fetchPartnerOrder(from)
         .then((source) => {
           setCreative(creativeOf(source.creative));
@@ -160,6 +160,10 @@ export function PartnerWizard() {
   }, [stepKey]);
 
   const pkg = config?.packages.find((p) => p.id === packageId) ?? null;
+  // Without an account, where the order's link and news go (see the API's
+  // PartnerOrderDoc.contactEmail). Asked on the payment step.
+  const [email, setEmail] = useState("");
+  const needsEmail = !loading && !account;
 
   function canLeave(from: number): string | null {
     const key = stepOrder[from];
@@ -192,15 +196,18 @@ export function PartnerWizard() {
       setProblem(why);
       return null;
     }
+    if (needsEmail && !order && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setProblem(t("partnerOrders.wizard.needEmail"));
+      return null;
+    }
+    setProblem(null);
     const saved = order
       ? await updatePartnerOrder(order.id, creative, pkg.id)
-      : await createPartnerOrder(pkg.id, creative);
+      : await createPartnerOrder(pkg.id, creative, needsEmail ? email.trim() : undefined);
     if (!order) trackPartnerOrderEvent(SELF_SERVE_PARTNER_EVENTS.created, saved.amountCents);
     setOrder(saved);
     return saved;
   }
-
-  if (!loading && !account) return <PartnerSignInGate />;
 
   return (
     <main className="mx-auto w-full max-w-7xl grow px-4 pb-24 pt-6 sm:px-6">
@@ -290,6 +297,30 @@ export function PartnerWizard() {
               {config && pkg && (
                 <section className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                   <h2 className="mb-3 text-lg font-semibold text-zinc-950 dark:text-zinc-50">{t("partnerOrders.wizard.payTitle")}</h2>
+                  {/* No account: suggested, never required — the email below is
+                      enough, and is how they get back to the ad. */}
+                  {needsEmail && (
+                    <div className="mb-4">
+                      <PartnerAccountSuggestion />
+                    </div>
+                  )}
+                  {needsEmail && !order && (
+                    <div className="mb-4">
+                      <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300" htmlFor="po-contact-email">
+                        {t("partnerOrders.wizard.emailLabel")}
+                      </label>
+                      <input
+                        id="po-contact-email"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="voce@exemplo.com"
+                        className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      />
+                      <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">{t("partnerOrders.wizard.emailHint")}</p>
+                    </div>
+                  )}
                   <PartnerCheckout
                     order={order}
                     amountLabel={pkg.priceLabel}

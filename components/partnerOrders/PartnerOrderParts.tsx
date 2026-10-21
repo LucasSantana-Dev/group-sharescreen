@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FaDiscord } from "react-icons/fa";
+import { AccountModal, type AccountModalMode } from "@/components/AccountModal";
 import { MdOutlineAdsClick, MdOutlinePeopleAlt, MdOutlineRemoveRedEye, MdCheck, MdClose } from "react-icons/md";
 import useNtPopups from "ntpopups";
 import { CustomizerPreview } from "@/components/PartnerAdCustomizer";
@@ -129,6 +130,42 @@ export function PartnerDiscordFloating({ source }: { source: string }) {
           <PartnerDiscordBanner source={source} stacked />
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * "Crie uma conta" — shown to whoever is advertising without one. Not
+ * required (an email and the order's key are enough), but an account keeps
+ * every ad in one place on any device and gets pushes instead of emails; and
+ * signing in moves the ads made in this browser into it (see claimIfSignedIn).
+ */
+export function PartnerAccountSuggestion({ compact = false }: { compact?: boolean }) {
+  const t = useT();
+  const [mode, setMode] = useState<AccountModalMode | null>(null);
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100 sm:flex-row sm:items-center">
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">{t("partnerOrders.account.title")}</p>
+        {!compact && <p className="mt-0.5 text-xs opacity-90">{t("partnerOrders.account.text")}</p>}
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <button
+          type="button"
+          onClick={() => setMode("create")}
+          className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-500"
+        >
+          {t("partnerOrders.account.create")}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("login")}
+          className="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-900/40"
+        >
+          {t("common.signIn")}
+        </button>
+      </div>
+      <AccountModal mode={mode} onModeChange={setMode} />
     </div>
   );
 }

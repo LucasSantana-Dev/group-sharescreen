@@ -4974,9 +4974,6 @@
   "partnerOrders.packages.base": "Precio base",
   "partnerOrders.packages.moreDays": "¿Más de 30 días?",
   "partnerOrders.packages.moreDaysHint": "Abre un ticket en Discord y lo negociamos",
-  "partnerOrders.gate.title": "Anuncia en GoLive",
-  "partnerOrders.gate.text": "Inicia sesión para crear tu anuncio, pagar y seguir los resultados en vivo.",
-  "partnerOrders.gate.create": "Crear cuenta",
   "partnerOrders.wizard.title": "Crear anuncio",
   "partnerOrders.wizard.subtitle": "Elige el período, arma tu anuncio y paga con Pix o tarjeta.",
   "partnerOrders.wizard.stepN": "Paso {n}",
@@ -5090,5 +5087,15 @@
   "admin.partnerOrders.launchMinutes": "Tiempo de lanzamiento",
   "admin.partnerOrders.defaultWeight": "Peso por defecto",
   "admin.partnerOrders.launchSaved": "Guardado",
-  "admin.partnerOrders.launching": "lanzamiento · peso {weight} hasta {time}"
+  "admin.partnerOrders.launching": "lanzamiento · peso {weight} hasta {time}",
+  "partnerOrders.wizard.emailLabel": "Tu correo",
+  "partnerOrders.wizard.emailHint": "No necesitas cuenta. Enviamos a este correo el enlace de tu anuncio y sus avisos.",
+  "partnerOrders.wizard.needEmail": "Pon un correo válido para recibir el enlace del anuncio.",
+  "partnerOrders.detail.keepLink": "Guarda el enlace de este anuncio — es como vuelves aquí sin cuenta.",
+  "partnerOrders.detail.keepLinkEmail": "Guarda el enlace de este anuncio — es como vuelves aquí sin cuenta. También lo enviamos a {email}.",
+  "partnerOrders.detail.copyOrderLink": "Copiar enlace del anuncio",
+  "partnerOrders.account.title": "Recomendado: crea una cuenta en GoLive",
+  "partnerOrders.account.text": "No es obligatorio, pero con cuenta ves todos tus anuncios en cualquier dispositivo y recibes notificaciones. Los anuncios que ya creaste aquí se mueven con ella.",
+  "partnerOrders.account.create": "Crear cuenta gratis",
+  "partnerOrders.dashboard.guestHint": "Sin cuenta, aquí aparecen solo los anuncios creados en este navegador (o abiertos desde el enlace del correo)."
 }

@@ -4974,9 +4974,6 @@
   "partnerOrders.packages.base": "Preço base",
   "partnerOrders.packages.moreDays": "Mais de 30 dias?",
   "partnerOrders.packages.moreDaysHint": "Abra um ticket no Discord e a gente negocia",
-  "partnerOrders.gate.title": "Anuncie no GoLive",
-  "partnerOrders.gate.text": "Entre na sua conta para criar o anúncio, pagar e acompanhar os resultados ao vivo.",
-  "partnerOrders.gate.create": "Criar conta",
   "partnerOrders.wizard.title": "Criar anúncio",
   "partnerOrders.wizard.subtitle": "Escolha o período, monte o seu anúncio e pague com Pix ou cartão.",
   "partnerOrders.wizard.stepN": "Etapa {n}",
@@ -5090,5 +5087,15 @@
   "admin.partnerOrders.launchMinutes": "Tempo do lançamento",
   "admin.partnerOrders.defaultWeight": "Peso padrão",
   "admin.partnerOrders.launchSaved": "Salvo",
-  "admin.partnerOrders.launching": "lançamento · peso {weight} até {time}"
+  "admin.partnerOrders.launching": "lançamento · peso {weight} até {time}",
+  "partnerOrders.wizard.emailLabel": "Seu e-mail",
+  "partnerOrders.wizard.emailHint": "Não precisa de conta. Mandamos para este e-mail o link do seu anúncio e os avisos dele.",
+  "partnerOrders.wizard.needEmail": "Coloque um e-mail válido para receber o link do anúncio.",
+  "partnerOrders.detail.keepLink": "Guarde o link deste anúncio — é por ele que você volta aqui sem conta.",
+  "partnerOrders.detail.keepLinkEmail": "Guarde o link deste anúncio — é por ele que você volta aqui sem conta. Também mandamos para {email}.",
+  "partnerOrders.detail.copyOrderLink": "Copiar link do anúncio",
+  "partnerOrders.account.title": "Recomendado: crie uma conta no GoLive",
+  "partnerOrders.account.text": "Não é obrigatório, mas com conta você vê todos os seus anúncios em qualquer aparelho e recebe notificações. Os anúncios que você já criou aqui vão junto.",
+  "partnerOrders.account.create": "Criar conta grátis",
+  "partnerOrders.dashboard.guestHint": "Sem conta, aqui aparecem só os anúncios criados neste navegador (ou abertos pelo link do e-mail)."
 }

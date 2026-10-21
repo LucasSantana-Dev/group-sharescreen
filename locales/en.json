@@ -4974,9 +4974,6 @@
   "partnerOrders.packages.base": "Base price",
   "partnerOrders.packages.moreDays": "More than 30 days?",
   "partnerOrders.packages.moreDaysHint": "Open a Discord ticket and we'll work out a deal",
-  "partnerOrders.gate.title": "Advertise on GoLive",
-  "partnerOrders.gate.text": "Sign in to create your ad, pay and follow the results live.",
-  "partnerOrders.gate.create": "Create account",
   "partnerOrders.wizard.title": "Create ad",
   "partnerOrders.wizard.subtitle": "Pick the period, build your ad and pay with Pix or card.",
   "partnerOrders.wizard.stepN": "Step {n}",
@@ -5090,5 +5087,15 @@
   "admin.partnerOrders.launchMinutes": "Launch time",
   "admin.partnerOrders.defaultWeight": "Default weight",
   "admin.partnerOrders.launchSaved": "Saved",
-  "admin.partnerOrders.launching": "launching · weight {weight} until {time}"
+  "admin.partnerOrders.launching": "launching · weight {weight} until {time}",
+  "partnerOrders.wizard.emailLabel": "Your email",
+  "partnerOrders.wizard.emailHint": "No account needed. We send your ad's link and its updates to this email.",
+  "partnerOrders.wizard.needEmail": "Enter a valid email to receive your ad's link.",
+  "partnerOrders.detail.keepLink": "Keep this ad's link — it's how you get back here without an account.",
+  "partnerOrders.detail.keepLinkEmail": "Keep this ad's link — it's how you get back here without an account. We also sent it to {email}.",
+  "partnerOrders.detail.copyOrderLink": "Copy ad link",
+  "partnerOrders.account.title": "Recommended: create a GoLive account",
+  "partnerOrders.account.text": "It's optional, but with an account you see all your ads on any device and get notifications. The ads you already made here come along.",
+  "partnerOrders.account.create": "Create free account",
+  "partnerOrders.dashboard.guestHint": "Without an account, this only shows the ads created in this browser (or opened from the email link)."
 }
