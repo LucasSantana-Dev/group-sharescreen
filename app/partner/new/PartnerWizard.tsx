@@ -336,7 +336,7 @@ export function PartnerWizard() {
               </p>
             </div>
           )}
-          <PartnerDiscordBanner source="wizard" />
+          <PartnerDiscordBanner source="wizard" stacked />
         </aside>
       </div>
     </main>

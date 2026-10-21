@@ -142,21 +142,16 @@ export function PartnerPitchModal({
           </div>
 
           {selfServe && (
-            <>
-              <Link
-                href="/partner/new"
-                onClick={() => {
-                  trackPartnerOrderEvent(SELF_SERVE_PARTNER_EVENTS.ctaClick);
-                  closePopup(true);
-                }}
-                className="flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-emerald-500"
-              >
-                {t("partnerOrders.createMyAdNow")}
-              </Link>
-              <p className="-mt-1 text-center text-[11px] text-zinc-500 dark:text-zinc-400">
-                {t("partnerOrders.pitchFrom")}
-              </p>
-            </>
+            <Link
+              href="/partner/new"
+              onClick={() => {
+                trackPartnerOrderEvent(SELF_SERVE_PARTNER_EVENTS.ctaClick);
+                closePopup(true);
+              }}
+              className="flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-emerald-500"
+            >
+              {t("partnerOrders.createMyAdNow")}
+            </Link>
           )}
           <a
             href={FALLBACK_PARTNER.buttonUrl}

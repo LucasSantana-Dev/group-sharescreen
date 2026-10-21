@@ -59,7 +59,14 @@ export function PartnerAudienceStats({ compact = false }: { compact?: boolean })
 }
 
 /** "Quer saber mais, negociar ou falar com alguém? Abra um ticket" — always in sight. */
-export function PartnerDiscordBanner({ source }: { source: string }) {
+export function PartnerDiscordBanner({
+  source,
+  stacked = false,
+}: {
+  source: string;
+  /** Always one column — for narrow spots like a sidebar, where a row squeezes the text. */
+  stacked?: boolean;
+}) {
   const t = useT();
   return (
     <a
@@ -68,7 +75,9 @@ export function PartnerDiscordBanner({ source }: { source: string }) {
       rel="noopener noreferrer"
       onClick={() => trackPartnerOrderEvent(SELF_SERVE_PARTNER_EVENTS.discordClick)}
       data-source={source}
-      className="flex flex-col gap-3 rounded-xl bg-[#5865f2] p-4 text-white transition hover:opacity-95 sm:flex-row sm:items-center"
+      className={`flex flex-col gap-3 rounded-xl bg-[#5865f2] p-4 text-white transition hover:opacity-95 ${
+        stacked ? "" : "sm:flex-row sm:items-center"
+      }`}
     >
       <FaDiscord className="h-8 w-8 shrink-0" />
       <div className="min-w-0 flex-1">

@@ -381,7 +381,7 @@ export function PartnerOrderDetail({ id }: { id: string }) {
             <Row label={t("partnerOrders.detail.endsAt")} value={when(current.endsAt)} />
             <Row label={t("partnerOrders.detail.method")} value={current.paymentMethod === "card" ? t("partnerOrders.checkout.card") : current.paymentMethod === "pix" ? "Pix" : "—"} />
           </dl>
-          <PartnerDiscordBanner source="detail" />
+          <PartnerDiscordBanner source="detail" stacked />
         </aside>
       </div>
     </main>
