@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FaDiscord } from "react-icons/fa";
 import { MdOutlineAdsClick, MdOutlinePeopleAlt, MdOutlineRemoveRedEye, MdCheck } from "react-icons/md";
+import useNtPopups from "ntpopups";
 import { CustomizerPreview } from "@/components/PartnerAdCustomizer";
+import { partnerRewardPopupSize, type PartnerRewardPopupData } from "@/components/PartnerRewardModal";
 import { useT } from "@/lib/useI18n";
 import { useVideoDurationLabel } from "@/lib/useVideoDuration";
 import {
@@ -91,6 +93,9 @@ export function PartnerDiscordBanner({
   );
 }
 
+/** The package most advertisers pick — outlined and labelled in the picker. */
+const POPULAR_PACKAGE_ID = "3d";
+
 /** The durations on sale, as cards. The cheapest per day gets marked. */
 export function PartnerPackagePicker({
   packages,
@@ -111,6 +116,7 @@ export function PartnerPackagePicker({
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {packages.map((pkg) => {
         const selected = pkg.id === value;
+        const popular = pkg.id === POPULAR_PACKAGE_ID;
         const perDay = pricePerDayCents(pkg);
         const saving = basePerDay > 0 ? Math.round((1 - perDay / basePerDay) * 100) : 0;
         return (
@@ -122,16 +128,23 @@ export function PartnerPackagePicker({
             className={`relative flex flex-col items-start rounded-xl border p-3 text-left transition ${
               selected
                 ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/30 dark:bg-emerald-950/30"
-                : "border-zinc-200 bg-white hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
+                : popular
+                  ? "border-2 border-sky-500 bg-white hover:border-sky-400 dark:bg-zinc-950"
+                  : "border-zinc-200 bg-white hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-600"
             }`}
           >
+            {popular && (
+              <span className="absolute -top-2 left-2 rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                {t("partnerOrders.packages.popular")}
+              </span>
+            )}
             {pkg.id === bestId && (
               <span className="absolute -top-2 right-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
                 {t("partnerOrders.packages.bestValue")}
               </span>
             )}
-            <span className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{packageDurationLabel(pkg.hours)}</span>
-            <span className="mt-1 text-lg font-bold tabular-nums text-zinc-950 dark:text-zinc-50">{pkg.priceLabel}</span>
+            <span className="text-lg font-bold text-zinc-950 dark:text-zinc-50">{packageDurationLabel(pkg.hours)}</span>
+            <span className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-600 dark:text-zinc-300">{pkg.priceLabel}</span>
             <span className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
               {saving > 0 ? t("partnerOrders.packages.saving", { percent: saving }) : t("partnerOrders.packages.base")}
             </span>
@@ -156,47 +169,116 @@ export function PartnerPackagePicker({
 /** The card as visitors will see it, in both of the shapes it is served in. */
 export function PartnerPreviewPanel({ creative }: { creative: PartnerCreative }) {
   const t = useT();
-  const [horizontal, setHorizontal] = useState(false);
   const rewardDuration = useVideoDurationLabel(creative.rewardVideoUrl && creative.rewardPoints ? creative.rewardVideoUrl : null);
-  const segment = (active: boolean) =>
-    `flex-1 rounded-md px-2 py-1 text-xs font-semibold transition ${
-      active
-        ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50"
-        : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-    }`;
+  const { openPopup } = useNtPopups();
+  // The real reward popup, filled from the card as it stands, in preview mode
+  // (see PartnerRewardModal's `preview`): nothing it does is counted or paid.
+  function openRewardPreview() {
+    if (!creative.rewardVideoUrl) return;
+    const extendedDescription = creative.extendedDescription?.trim() || null;
+    const data: PartnerRewardPopupData = {
+      partnerId: "self-serve-preview",
+      videoUrl: creative.rewardVideoUrl,
+      points: creative.rewardPoints ?? 0,
+      title: creative.title.trim() || t("common.adTitle"),
+      description: creative.description.trim() || t("common.adDescription"),
+      extendedDescription,
+      imageUrl: creative.imageUrl,
+      buttonLabel: creative.buttonLabel.trim() || t("common.button"),
+      buttonUrl: creative.buttonUrl.trim() || "#",
+      buttonBackgroundColor: creative.buttonBackgroundColor,
+      buttonTextColor: creative.buttonTextColor,
+      clickRewardPoints: null,
+      preview: true,
+    };
+    openPopup("partner_reward", {
+      ...partnerRewardPopupSize(Boolean(extendedDescription)),
+      closeOnEscape: false,
+      closeOnClickOutside: false,
+      requireAction: true,
+      data,
+    });
+  }
+  const card = {
+    title: creative.title,
+    description: creative.description,
+    imageUrl: creative.imageUrl,
+    iconUrl: creative.iconUrl,
+    buttonLabel: creative.buttonLabel,
+    buttonUrl: creative.buttonUrl,
+    backgroundColor: creative.backgroundColor,
+    textColor: creative.textColor,
+    buttonBackgroundColor: creative.buttonBackgroundColor,
+    buttonTextColor: creative.buttonTextColor,
+  };
+  const rewardPoints = creative.rewardVideoUrl && creative.rewardPoints ? String(creative.rewardPoints) : "";
+  const clickPoints =
+    creative.clickRewardPoints && creative.clickRewardPlacement !== "video" ? String(creative.clickRewardPoints) : "";
+  // Both shapes at once, one under the other: the ad is served in both, and
+  // the advertiser should see both without having to go looking.
+  const shapes = [
+    { horizontal: false, label: t("partnerAdCustomizer.layoutVertical") },
+    { horizontal: true, label: t("partnerAdCustomizer.layoutHorizontal") },
+  ];
   return (
-    <div>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{t("partnerAdCustomizer.preview")}</p>
-        <div className="flex w-44 gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-900">
-          <button type="button" onClick={() => setHorizontal(false)} className={segment(!horizontal)}>
-            {t("partnerAdCustomizer.layoutVertical")}
-          </button>
-          <button type="button" onClick={() => setHorizontal(true)} className={segment(horizontal)}>
-            {t("partnerAdCustomizer.layoutHorizontal")}
-          </button>
+    <div className="flex flex-col gap-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{t("partnerAdCustomizer.preview")}</p>
+      {shapes.map(({ horizontal, label }) => (
+        <div key={label}>
+          <p className="mb-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
+          <FitWidth width={horizontal ? HORIZONTAL_PREVIEW_PX : null}>
+            <CustomizerPreview
+              creative={card}
+              horizontal={horizontal}
+              rewardPoints={rewardPoints}
+              rewardDuration={rewardDuration}
+              onRewardClick={openRewardPreview}
+              clickPoints={clickPoints}
+            />
+          </FitWidth>
         </div>
+      ))}
+    </div>
+  );
+}
+
+// How wide the horizontal card is drawn before being scaled to fit: about the
+// width it gets in a room's stage, so its banner/text split looks like there.
+const HORIZONTAL_PREVIEW_PX = 576;
+
+/**
+ * Draws its child `width` pixels wide and scales it down to the space it
+ * actually has — so a wide layout previewed in a narrow sidebar looks like
+ * itself, smaller, instead of being cut off. `null` = no scaling.
+ */
+function FitWidth({ width, children }: { width: number | null; children: ReactNode }) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [height, setHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!width || !outer || !inner) return;
+    const measure = () => {
+      const next = Math.min(1, outer.clientWidth / width);
+      setScale(next);
+      setHeight(inner.offsetHeight * next);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(outer);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, [width]);
+
+  if (!width) return <>{children}</>;
+  return (
+    <div ref={outerRef} className="w-full overflow-hidden" style={{ height: height ?? undefined }}>
+      <div ref={innerRef} style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+        {children}
       </div>
-      <CustomizerPreview
-        creative={{
-          title: creative.title,
-          description: creative.description,
-          imageUrl: creative.imageUrl,
-          iconUrl: creative.iconUrl,
-          buttonLabel: creative.buttonLabel,
-          buttonUrl: creative.buttonUrl,
-          backgroundColor: creative.backgroundColor,
-          textColor: creative.textColor,
-          buttonBackgroundColor: creative.buttonBackgroundColor,
-          buttonTextColor: creative.buttonTextColor,
-        }}
-        horizontal={horizontal}
-        rewardPoints={creative.rewardVideoUrl && creative.rewardPoints ? String(creative.rewardPoints) : ""}
-        rewardDuration={rewardDuration}
-        clickPoints={
-          creative.clickRewardPoints && creative.clickRewardPlacement !== "video" ? String(creative.clickRewardPoints) : ""
-        }
-      />
     </div>
   );
 }

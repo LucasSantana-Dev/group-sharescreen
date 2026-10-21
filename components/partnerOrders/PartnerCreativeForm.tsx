@@ -1,11 +1,17 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { PartnerMediaDrop } from "@/app/admin/PartnerMediaDrop";
+import { PartnerImageUpload, PartnerMediaDrop } from "@/app/admin/PartnerMediaDrop";
 import { PartnerScheduleEditor } from "@/app/admin/PartnerScheduleEditor";
-import type { PartnerClickRewardPlacement } from "@/lib/partner";
 import { useT } from "@/lib/useI18n";
-import { SELF_SERVE_REWARD_POINTS_MAX, type PartnerCreative } from "@/lib/partnerOrders";
+import { BsCoin } from "react-icons/bs";
+import {
+  PARTNER_DISCORD_URL,
+  SELF_SERVE_PARTNER_EVENTS,
+  SELF_SERVE_VIDEO_REWARD_POINTS,
+  trackPartnerOrderEvent,
+  type PartnerCreative,
+} from "@/lib/partnerOrders";
 
 // The ad's fields, as the advertiser edits them — the same ones the admin form
 // has (see app/admin/PartnerAdsPanel.tsx) minus the house's own (weight,
@@ -43,7 +49,6 @@ export function creativeProblem(creative: PartnerCreative, t: (key: string) => s
   if (!creative.description.trim()) return t("partnerOrders.form.needDescription");
   if (!creative.buttonLabel.trim()) return t("partnerOrders.form.needButtonLabel");
   if (!/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(creative.buttonUrl.trim())) return t("partnerOrders.form.needButtonUrl");
-  if (creative.rewardVideoUrl && !creative.rewardPoints) return t("partnerOrders.form.needRewardPoints");
   if ((creative.schedules ?? []).some((s) => s.startMinute === s.endMinute)) return t("partnerOrders.form.badSchedule");
   return null;
 }
@@ -64,10 +69,9 @@ export function PartnerCreativeForm({
     onChange({ ...value, [key]: next });
   }
   const text = (raw: string) => (raw.trim() ? raw : null);
-  const points = (raw: string) => {
-    const n = Math.floor(Number(raw));
-    return raw.trim() && Number.isFinite(n) && n > 0 ? Math.min(n, SELF_SERVE_REWARD_POINTS_MAX) : null;
-  };
+  // A reward video always pays the fixed amount; no video, no points.
+  const setVideo = (url: string | null) =>
+    onChange({ ...value, rewardVideoUrl: url, rewardPoints: url ? SELF_SERVE_VIDEO_REWARD_POINTS : null });
 
   if (section === "card") {
     return (
@@ -126,27 +130,13 @@ export function PartnerCreativeForm({
 
         <Section title={t("partnerOrders.form.imagesTitle")} hint={t("partnerOrders.form.imagesHint")}>
           <div>
-            <label className={labelClass} htmlFor="po-image">{t("partnerOrders.form.banner")}</label>
-            <input
-              id="po-image"
-              className={inputClass}
-              value={value.imageUrl ?? ""}
-              onChange={(e) => set("imageUrl", text(e.target.value))}
-              placeholder="https://..."
-            />
-            <PartnerMediaDrop advertiser kind="image" onUploaded={(url) => set("imageUrl", url)} />
+            <p className={labelClass}>{t("partnerOrders.form.banner")}</p>
+            <PartnerImageUpload value={value.imageUrl} onChange={(url) => set("imageUrl", url)} />
           </div>
           <div>
-            <label className={labelClass} htmlFor="po-icon">{t("partnerOrders.form.icon")}</label>
-            <input
-              id="po-icon"
-              className={inputClass}
-              value={value.iconUrl ?? ""}
-              onChange={(e) => set("iconUrl", text(e.target.value))}
-              placeholder="https://..."
-            />
+            <p className={labelClass}>{t("partnerOrders.form.icon")}</p>
             <p className={hintClass}>{t("partnerAdCustomizer.iconHint")}</p>
-            <PartnerMediaDrop advertiser kind="image" onUploaded={(url) => set("iconUrl", url)} />
+            <PartnerImageUpload square value={value.iconUrl} onChange={(url) => set("iconUrl", url)} />
           </div>
         </Section>
 
@@ -191,34 +181,36 @@ export function PartnerCreativeForm({
   return (
     <div className="flex flex-col gap-4">
       <Section title={t("partnerOrders.form.videoTitle")} hint={t("partnerOrders.form.videoHint")}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
-          <div>
-            <label className={labelClass} htmlFor="po-video">{t("admin.partnerAdsPanel.videoLinkMp4")}</label>
-            <input
-              id="po-video"
-              className={inputClass}
-              value={value.rewardVideoUrl ?? ""}
-              onChange={(e) => {
-                const url = text(e.target.value);
-                onChange({ ...value, rewardVideoUrl: url, rewardPoints: url ? value.rewardPoints : null });
-              }}
-              placeholder="https://cdn.../video.mp4"
-            />
-            <PartnerMediaDrop advertiser kind="video" onUploaded={(url) => set("rewardVideoUrl", url)} />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="po-video-points">{t("admin.partnerAdsPanel.pointsForWatching")}</label>
-            <input
-              id="po-video-points"
-              type="number"
-              min={1}
-              max={SELF_SERVE_REWARD_POINTS_MAX}
-              className={`${inputClass} sm:w-36`}
-              value={value.rewardPoints ?? ""}
-              disabled={!value.rewardVideoUrl}
-              onChange={(e) => set("rewardPoints", points(e.target.value))}
-            />
-          </div>
+        <div>
+          <label className={labelClass} htmlFor="po-video">{t("admin.partnerAdsPanel.videoLinkMp4")}</label>
+          <input
+            id="po-video"
+            className={inputClass}
+            value={value.rewardVideoUrl ?? ""}
+            onChange={(e) => setVideo(text(e.target.value))}
+            placeholder="https://cdn.../video.mp4"
+          />
+          <PartnerMediaDrop advertiser kind="video" onUploaded={setVideo} />
+        </div>
+        {/* The points are not the advertiser's to pick (see the API's
+            SELF_SERVE_VIDEO_REWARD_POINTS); more is a conversation. */}
+        <div className="flex flex-col gap-1 rounded-lg bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          <p className="flex items-center gap-1.5 font-semibold">
+            <BsCoin className="h-3.5 w-3.5 shrink-0" />
+            {t("partnerOrders.form.videoPoints", { points: SELF_SERVE_VIDEO_REWARD_POINTS })}
+          </p>
+          <p>
+            {t("partnerOrders.form.morePoints")}{" "}
+            <a
+              href={PARTNER_DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackPartnerOrderEvent(SELF_SERVE_PARTNER_EVENTS.discordClick)}
+              className="font-semibold text-[#5865f2] underline underline-offset-2"
+            >
+              {t("partnerOrders.discord.cta")}
+            </a>
+          </p>
         </div>
         <div>
           <label className={labelClass} htmlFor="po-extended">{t("admin.partnerAdsPanel.extendedDescriptionOptional")}</label>
@@ -240,45 +232,6 @@ export function PartnerCreativeForm({
           </p>
           <PartnerMediaDrop advertiser kind="image" compact onUploaded={insertExtendedImage} />
         </div>
-      </Section>
-
-      <Section title={t("partnerOrders.form.clickTitle")} hint={t("partnerOrders.form.clickHint")}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_1fr]">
-          <div>
-            <label className={labelClass} htmlFor="po-click-points">{t("admin.partnerAdsPanel.pointsForClicking")}</label>
-            <input
-              id="po-click-points"
-              type="number"
-              min={1}
-              max={SELF_SERVE_REWARD_POINTS_MAX}
-              className={`${inputClass} sm:w-36`}
-              value={value.clickRewardPoints ?? ""}
-              onChange={(e) => {
-                const amount = points(e.target.value);
-                onChange({
-                  ...value,
-                  clickRewardPoints: amount,
-                  clickRewardPlacement: amount ? (value.clickRewardPlacement ?? "both") : null,
-                });
-              }}
-            />
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="po-click-placement">{t("admin.partnerAdsPanel.whereItApplies")}</label>
-            <select
-              id="po-click-placement"
-              className={inputClass}
-              value={value.clickRewardPlacement ?? "both"}
-              disabled={!value.clickRewardPoints}
-              onChange={(e) => set("clickRewardPlacement", e.target.value as PartnerClickRewardPlacement)}
-            >
-              <option value="both">{t("admin.partnerAdsPanel.cardAndVideo")}</option>
-              <option value="video">{t("admin.partnerAdsPanel.videoPopupOnly")}</option>
-              <option value="card">{t("admin.partnerAdsPanel.cardOnly")}</option>
-            </select>
-          </div>
-        </div>
-        <p className={hintClass}>{t("partnerOrders.form.pointsCap", { max: SELF_SERVE_REWARD_POINTS_MAX })}</p>
       </Section>
 
       <Section title={t("partnerOrders.form.scheduleTitle")} hint={t("partnerAdCustomizer.scheduleHint")}>

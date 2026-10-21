@@ -27,8 +27,11 @@ export const SELF_SERVE_PARTNER_EVENTS = {
   discordClick: "partner_order_discord_click",
 } as const;
 
-/** The API's SELF_SERVE_REWARD_POINTS_MAX: points per person a self-serve ad may give. */
-export const SELF_SERVE_REWARD_POINTS_MAX = 1000;
+/**
+ * The API's SELF_SERVE_VIDEO_REWARD_POINTS: what a self-serve ad's reward video
+ * pays, fixed. Self-serve ads have no points per click; more is a Discord talk.
+ */
+export const SELF_SERVE_VIDEO_REWARD_POINTS = 150;
 
 /** A usage event, counted for this experiment only. */
 export function trackPartnerOrderEvent(name: string, value?: number) {
@@ -301,9 +304,9 @@ export function creativeOf(source: PartnerCreative): PartnerCreative {
     buttonBackgroundColor: source.buttonBackgroundColor ?? null,
     buttonTextColor: source.buttonTextColor ?? null,
     rewardVideoUrl: source.rewardVideoUrl ?? null,
-    rewardPoints: source.rewardPoints ?? null,
-    clickRewardPoints: source.clickRewardPoints ?? null,
-    clickRewardPlacement: source.clickRewardPlacement ?? null,
+    rewardPoints: source.rewardVideoUrl ? SELF_SERVE_VIDEO_REWARD_POINTS : null,
+    clickRewardPoints: null,
+    clickRewardPlacement: null,
     schedules: source.schedules ?? [],
   };
 }

@@ -151,3 +151,49 @@ export function PartnerMediaDrop({
     </div>
   );
 }
+
+/**
+ * An image field that only takes a file — no link to paste. What the
+ * self-serve dashboard uses for the banner and the icon: everything an
+ * advertiser shows goes through our own CDN, never a URL from elsewhere that
+ * could change after review. Shows the picture once there is one, with a way
+ * to remove it. The admin form keeps its link input.
+ */
+export function PartnerImageUpload({
+  value,
+  onChange,
+  square = false,
+  compact = false,
+}: {
+  value: string | null;
+  onChange: (url: string | null) => void;
+  /** The icon: drawn as a square thumbnail rather than a banner strip. */
+  square?: boolean;
+  compact?: boolean;
+}) {
+  const t = useT();
+  return (
+    <div>
+      {value && (
+        <div className="mt-1 flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={value}
+            alt=""
+            className={`rounded-lg border border-zinc-200 object-cover dark:border-zinc-800 ${
+              square ? "h-14 w-14" : "h-14 w-28"
+            }`}
+          />
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="text-xs font-semibold text-red-600 underline underline-offset-2 dark:text-red-400"
+          >
+            {t("common.remove")}
+          </button>
+        </div>
+      )}
+      <PartnerMediaDrop advertiser kind="image" compact={compact || Boolean(value)} onUploaded={onChange} />
+    </div>
+  );
+}

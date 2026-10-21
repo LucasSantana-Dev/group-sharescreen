@@ -4993,7 +4993,6 @@
   "partnerOrders.wizard.summaryDuration": "Período",
   "partnerOrders.wizard.summaryPrice": "Total",
   "partnerOrders.wizard.summaryVideo": "Video con recompensa",
-  "partnerOrders.wizard.summaryClick": "Puntos por clic",
   "partnerOrders.wizard.summarySchedules": "Versiones por horario",
   "partnerOrders.wizard.pointsEach": "{points} puntos por persona",
   "partnerOrders.wizard.none": "Ninguno",
@@ -5010,15 +5009,11 @@
   "partnerOrders.form.colorsTitle": "Colores",
   "partnerOrders.form.videoTitle": "Video con recompensa (opcional)",
   "partnerOrders.form.videoHint": "Quien vea el video hasta el final gana puntos en GoLive. Aparece un botón “Ver y canjear” en la tarjeta.",
-  "partnerOrders.form.clickTitle": "Puntos por clic (opcional)",
-  "partnerOrders.form.clickHint": "La primera vez que cada persona hace clic en el botón del anuncio, gana puntos.",
-  "partnerOrders.form.pointsCap": "Máximo {max} puntos por persona.",
   "partnerOrders.form.scheduleTitle": "Versiones por horario (opcional)",
   "partnerOrders.form.needTitle": "Escribe un título.",
   "partnerOrders.form.needDescription": "Escribe una descripción.",
   "partnerOrders.form.needButtonLabel": "Escribe el texto del botón.",
   "partnerOrders.form.needButtonUrl": "Pon un enlace completo en el botón (https://…).",
-  "partnerOrders.form.needRewardPoints": "Indica cuántos puntos da el video.",
   "partnerOrders.form.badSchedule": "Una versión por horario empieza y termina a la misma hora.",
   "partnerOrders.checkout.card": "Tarjeta",
   "partnerOrders.checkout.cardHint": "Irás a la página segura del procesador de pagos y volverás aquí después.",
@@ -5090,5 +5085,8 @@
   "admin.partnerOrders.rejectPlaceholder": "¿Por qué? El anunciante lo lee para corregirlo.",
   "admin.partnerOrders.failed": "No funcionó. Inténtalo de nuevo.",
   "admin.partnerOrders.refundNote": "Rechazar no reembolsa: el anunciante puede corregir y reenviar. Los reembolsos son manuales, en el panel del procesador.",
-  "admin.partnerOrders.pendingBadge": "{count} anuncio(s) para aprobar"
+  "admin.partnerOrders.pendingBadge": "{count} anuncio(s) para aprobar",
+  "partnerOrders.form.videoPoints": "Quien lo vea hasta el final gana {points} puntos.",
+  "partnerOrders.form.morePoints": "¿Quieres dar más puntos? Habla con nosotros en Discord.",
+  "partnerOrders.packages.popular": "Más elegido"
 }

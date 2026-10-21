@@ -545,12 +545,15 @@ export function CustomizerPreview({
   rewardPoints,
   rewardDuration,
   clickPoints,
+  onRewardClick,
 }: {
   creative: PartnerCardData;
   horizontal: boolean;
   rewardPoints: string;
   rewardDuration: string | null;
   clickPoints: string;
+  /** Makes the reward button work — opens the real video popup, in preview. */
+  onRewardClick?: () => void;
 }) {
   const t = useT();
   // Banner first, the square mark standing in (as a square) when there is
@@ -613,8 +616,13 @@ export function CustomizerPreview({
           <span className="truncate">{creative.buttonLabel || t("common.button")}</span>
         </div>
         {rewardPoints && (
-          <div
-            className="partner-reward-glow mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-current px-3 py-1.5 text-xs font-semibold opacity-90"
+          <button
+            type="button"
+            onClick={onRewardClick}
+            disabled={!onRewardClick}
+            className={`partner-reward-glow mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-current px-3 py-1.5 text-xs font-semibold opacity-90 ${
+              onRewardClick ? "cursor-pointer transition hover:opacity-100" : "cursor-default"
+            }`}
             style={{ ["--partner-reward-glow-color" as string]: creative.buttonBackgroundColor ?? "#18181b" }}
           >
             <span className="truncate">
@@ -624,7 +632,7 @@ export function CustomizerPreview({
             </span>
             <BsCoin className="h-3.5 w-3.5 shrink-0" />
             <span className="shrink-0 tabular-nums">{rewardPoints}</span>
-          </div>
+          </button>
         )}
       </div>
     </div>

@@ -4993,7 +4993,6 @@
   "partnerOrders.wizard.summaryDuration": "Period",
   "partnerOrders.wizard.summaryPrice": "Total",
   "partnerOrders.wizard.summaryVideo": "Reward video",
-  "partnerOrders.wizard.summaryClick": "Points per click",
   "partnerOrders.wizard.summarySchedules": "Time-of-day versions",
   "partnerOrders.wizard.pointsEach": "{points} points per person",
   "partnerOrders.wizard.none": "None",
@@ -5010,15 +5009,11 @@
   "partnerOrders.form.colorsTitle": "Colours",
   "partnerOrders.form.videoTitle": "Reward video (optional)",
   "partnerOrders.form.videoHint": "Whoever watches the video to the end earns GoLive points. A “Watch and redeem” button shows on the card.",
-  "partnerOrders.form.clickTitle": "Points per click (optional)",
-  "partnerOrders.form.clickHint": "The first time each person clicks the ad's button, they earn points.",
-  "partnerOrders.form.pointsCap": "At most {max} points per person.",
   "partnerOrders.form.scheduleTitle": "Time-of-day versions (optional)",
   "partnerOrders.form.needTitle": "Write a title.",
   "partnerOrders.form.needDescription": "Write a description.",
   "partnerOrders.form.needButtonLabel": "Write the button's text.",
   "partnerOrders.form.needButtonUrl": "Give the button a full link (https://…).",
-  "partnerOrders.form.needRewardPoints": "Say how many points the video gives.",
   "partnerOrders.form.badSchedule": "A time-of-day version starts and ends at the same time.",
   "partnerOrders.checkout.card": "Card",
   "partnerOrders.checkout.cardHint": "You'll go to the payment processor's secure page and come back here afterwards.",
@@ -5090,5 +5085,8 @@
   "admin.partnerOrders.rejectPlaceholder": "Why? The advertiser reads this to fix it.",
   "admin.partnerOrders.failed": "That didn't work. Try again.",
   "admin.partnerOrders.refundNote": "Refusing doesn't refund: the advertiser can fix and resend. Refunds are manual, in the processor's dashboard.",
-  "admin.partnerOrders.pendingBadge": "{count} ad(s) to approve"
+  "admin.partnerOrders.pendingBadge": "{count} ad(s) to approve",
+  "partnerOrders.form.videoPoints": "Whoever watches to the end earns {points} points.",
+  "partnerOrders.form.morePoints": "Want to give more points? Talk to us on Discord.",
+  "partnerOrders.packages.popular": "Most popular"
 }

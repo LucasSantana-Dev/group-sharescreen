@@ -257,10 +257,6 @@ export function PartnerWizard() {
                     value={creative.rewardVideoUrl && creative.rewardPoints ? t("partnerOrders.wizard.pointsEach", { points: creative.rewardPoints }) : t("partnerOrders.wizard.none")}
                   />
                   <SummaryRow
-                    label={t("partnerOrders.wizard.summaryClick")}
-                    value={creative.clickRewardPoints ? t("partnerOrders.wizard.pointsEach", { points: creative.clickRewardPoints }) : t("partnerOrders.wizard.none")}
-                  />
-                  <SummaryRow
                     label={t("partnerOrders.wizard.summarySchedules")}
                     value={String((creative.schedules ?? []).length || t("partnerOrders.wizard.none"))}
                   />
