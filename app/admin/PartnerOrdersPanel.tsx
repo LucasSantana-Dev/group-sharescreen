@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MdCheck, MdClose, MdExpandLess, MdExpandMore, MdOpenInNew } from "react-icons/md";
 import { PartnerPreviewPanel, PartnerStatusPill } from "@/components/partnerOrders/PartnerOrderParts";
 import { formatLocale } from "@/lib/i18n";
+import { fetchAdminPartners, setPartnerLaunchSettings, type PartnerLaunchSettings } from "@/lib/adminApi";
 import { useT } from "@/lib/useI18n";
 import {
   approvePartnerOrder,
@@ -71,6 +72,8 @@ export function PartnerOrdersPanel() {
         )}
       </div>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t("admin.partnerOrders.subtitle")}</p>
+
+      <LaunchSettingsBox />
 
       {orders === null ? (
         <p className="mt-4 text-sm text-zinc-500">{t("common.loading")}</p>
@@ -270,6 +273,115 @@ function ReviewCard({ order, onDone }: { order: AdminPartnerOrder; onDone: (o: A
         )}
       </div>
       {!isEdit && <p className="mt-2 text-[11px] text-zinc-500">{t("admin.partnerOrders.refundNote")}</p>}
+    </div>
+  );
+}
+
+/**
+ * What approving an order does to the slot: the new ad is served at the launch
+ * weight for the first minutes — so nearly everybody sees it — and then at the
+ * default weight. Saved on the server (PUT /admin/partner-settings).
+ */
+function LaunchSettingsBox() {
+  const t = useT();
+  const [saved, setSaved] = useState<PartnerLaunchSettings | null>(null);
+  const [form, setForm] = useState({ launchWeight: "", launchMinutes: "", defaultWeight: "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAdminPartners()
+      .then((data) => {
+        if (cancelled) return;
+        const settings = {
+          launchWeight: data.launchWeight,
+          launchMinutes: data.launchMinutes,
+          defaultWeight: data.defaultWeight,
+        };
+        setSaved(settings);
+        setForm({
+          launchWeight: String(settings.launchWeight),
+          launchMinutes: String(settings.launchMinutes),
+          defaultWeight: String(settings.defaultWeight),
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dirty =
+    saved !== null &&
+    (form.launchWeight !== String(saved.launchWeight) ||
+      form.launchMinutes !== String(saved.launchMinutes) ||
+      form.defaultWeight !== String(saved.defaultWeight));
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    setDone(false);
+    try {
+      const next = await setPartnerLaunchSettings({
+        launchWeight: Number(form.launchWeight),
+        launchMinutes: Number(form.launchMinutes),
+        defaultWeight: Number(form.defaultWeight),
+      });
+      setSaved(next);
+      setForm({
+        launchWeight: String(next.launchWeight),
+        launchMinutes: String(next.launchMinutes),
+        defaultWeight: String(next.defaultWeight),
+      });
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("admin.partnerOrders.failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const field = (key: keyof typeof form, label: string, suffix?: string) => (
+    <label className="flex flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+      {label}
+      <span className="flex items-center gap-1.5">
+        <input
+          type="number"
+          min={key === "launchMinutes" ? 0 : 1}
+          step={key === "launchMinutes" ? 0.5 : 1}
+          value={form[key]}
+          onChange={(e) => {
+            setForm((prev) => ({ ...prev, [key]: e.target.value }));
+            setDone(false);
+          }}
+          className="w-24 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+        />
+        {suffix && <span className="text-zinc-500">{suffix}</span>}
+      </span>
+    </label>
+  );
+
+  return (
+    <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{t("admin.partnerOrders.launchTitle")}</p>
+      <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{t("admin.partnerOrders.launchHint")}</p>
+      <div className="mt-2 flex flex-wrap items-end gap-3">
+        {field("launchWeight", t("admin.partnerOrders.launchWeight"))}
+        {field("launchMinutes", t("admin.partnerOrders.launchMinutes"), "min")}
+        {field("defaultWeight", t("admin.partnerOrders.defaultWeight"))}
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={busy || !dirty}
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          {busy ? t("common.saving") : t("common.save")}
+        </button>
+        {done && <span className="text-xs text-emerald-600">{t("admin.partnerOrders.launchSaved")}</span>}
+      </div>
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
   );
 }

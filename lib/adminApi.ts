@@ -583,6 +583,10 @@ export type AdminPartner = Partner & {
   // one — see Partner.hasExtendedDescription). Absent on ads saved before it.
   extendedDescription?: string | null;
   weight: number;
+  // The launch of an approved self-serve ad: served at launchWeight until
+  // launchUntil (epoch ms). Absent on every other ad.
+  launchWeight?: number | null;
+  launchUntil?: number | null;
   createdAt: number;
   // Key to this ad's public report page (/ad/[token]) — the link the
   // admin hands an advertiser so they can watch their own numbers without an
@@ -637,6 +641,13 @@ export type PartnerAdminList = {
   partners: AdminPartner[];
   emptyPercent: number;
   stats: Record<string, PartnerStats>;
+} & PartnerLaunchSettings;
+
+/** How an approved self-serve ad is launched (see the API's PartnerConfig). */
+export type PartnerLaunchSettings = {
+  launchWeight: number;
+  launchMinutes: number;
+  defaultWeight: number;
 };
 
 export type PartnerInput = {
@@ -737,6 +748,14 @@ export async function editPartner(
 
 export async function deletePartner(id: string): Promise<void> {
   await adminFetch<void>(`/admin/partners/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export async function setPartnerLaunchSettings(settings: PartnerLaunchSettings): Promise<PartnerLaunchSettings> {
+  return adminFetch<PartnerLaunchSettings>("/admin/partner-settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
 }
 
 export async function setPartnerEmptyPercent(emptyPercent: number): Promise<number> {

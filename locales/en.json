@@ -5083,5 +5083,12 @@
   "admin.partnerOrders.pendingBadge": "{count} ad(s) to approve",
   "partnerOrders.form.videoPoints": "Whoever watches to the end earns {points} points.",
   "partnerOrders.form.morePoints": "Want to give more points? Talk to us on Discord.",
-  "partnerOrders.packages.popular": "Most popular"
+  "partnerOrders.packages.popular": "Most popular",
+  "admin.partnerOrders.launchTitle": "Launch of approved ads",
+  "admin.partnerOrders.launchHint": "When approved, the ad starts at the launch weight (almost everybody sees it) and, after the time, drops to the default weight. Time 0 = no launch.",
+  "admin.partnerOrders.launchWeight": "Launch weight",
+  "admin.partnerOrders.launchMinutes": "Launch time",
+  "admin.partnerOrders.defaultWeight": "Default weight",
+  "admin.partnerOrders.launchSaved": "Saved",
+  "admin.partnerOrders.launching": "launching · weight {weight} until {time}"
 }

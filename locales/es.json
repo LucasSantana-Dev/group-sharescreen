@@ -5083,5 +5083,12 @@
   "admin.partnerOrders.pendingBadge": "{count} anuncio(s) para aprobar",
   "partnerOrders.form.videoPoints": "Quien lo vea hasta el final gana {points} puntos.",
   "partnerOrders.form.morePoints": "¿Quieres dar más puntos? Habla con nosotros en Discord.",
-  "partnerOrders.packages.popular": "Más elegido"
+  "partnerOrders.packages.popular": "Más elegido",
+  "admin.partnerOrders.launchTitle": "Lanzamiento de anuncios aprobados",
+  "admin.partnerOrders.launchHint": "Al aprobarlo, el anuncio entra con el peso de lanzamiento (casi todos lo ven) y, pasado el tiempo, baja al peso por defecto. Tiempo 0 = sin lanzamiento.",
+  "admin.partnerOrders.launchWeight": "Peso de lanzamiento",
+  "admin.partnerOrders.launchMinutes": "Tiempo de lanzamiento",
+  "admin.partnerOrders.defaultWeight": "Peso por defecto",
+  "admin.partnerOrders.launchSaved": "Guardado",
+  "admin.partnerOrders.launching": "lanzamiento · peso {weight} hasta {time}"
 }
