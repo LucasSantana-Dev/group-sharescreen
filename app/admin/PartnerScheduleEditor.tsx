@@ -84,9 +84,12 @@ export function PartnerScheduleEditor({
   schedules,
   onChange,
   base,
+  advertiser = false,
 }: {
   schedules: PartnerSchedule[];
   onChange: (next: PartnerSchedule[]) => void;
+  /** The self-serve dashboard: uploads go through the advertiser's own route. */
+  advertiser?: boolean;
   /** The ad's own fields, used as every input's placeholder. */
   base: PartnerScheduleBase;
 }) {
@@ -250,6 +253,7 @@ export function PartnerScheduleEditor({
                           className={inputClass}
                         />
                         <PartnerMediaDrop
+                          advertiser={advertiser}
                           kind="image"
                           compact
                           onUploaded={(url) => patch(schedule.id, { imageUrl: url })}
@@ -264,6 +268,7 @@ export function PartnerScheduleEditor({
                           className={inputClass}
                         />
                         <PartnerMediaDrop
+                          advertiser={advertiser}
                           kind="image"
                           compact
                           onUploaded={(url) => patch(schedule.id, { iconUrl: url })}

@@ -28,6 +28,12 @@ import {
   EXAMPLE_PARTNER,
 } from "@/lib/partner";
 import { useAuth } from "@/lib/AuthContext";
+import { useFeature } from "@/lib/features";
+import {
+  SELF_SERVE_PARTNER_EVENTS,
+  SELF_SERVE_PARTNER_FEATURE,
+  trackPartnerOrderEvent,
+} from "@/lib/partnerOrders";
 import { useVideoDurationLabel } from "@/lib/useVideoDuration";
 import { Popover } from "@/components/Tooltip";
 import { useT } from "@/lib/useI18n";
@@ -138,6 +144,10 @@ export function PartnerCard({
   reservedAbove?: number;
 } = {}) {
   const t = useT();
+  // The self-serve ad dashboard (/partner): with it, the house ad's button
+  // opens the ad builder instead of the Discord ticket. Not counted as an
+  // exposure here — the pitch popup and the builder itself count it.
+  const selfServe = useFeature(SELF_SERVE_PARTNER_FEATURE, { track: false }).enabled;
   const isControlled = externalLoaded !== undefined;
   const signalingState = useSignalingSelector(selectPartnerPush, shallow);
   const [internalPartner, setInternalPartner] = useState<PartnerCardData | null>(null);
@@ -473,6 +483,9 @@ export function PartnerCard({
   // counter riding inside it.
   const showOnlineWidget = !showingExample && peopleOnline !== null;
   const displayData = showingRealAd ? data : showingExample ? EXAMPLE_PARTNER : FALLBACK_PARTNER;
+  // The house ad selling a slot, with the self-serve builder on: its button
+  // goes to the builder rather than to Discord.
+  const selfServeHouseAd = selfServe && showingHouseAdContent;
   // "Ler mais" is per-text, so this is false again the moment the slot
   // rotates onto another ad. Expanding doesn't uncap the card — the extra
   // lines scroll inside it, so the participant list keeps its room either
@@ -616,7 +629,9 @@ export function PartnerCard({
                 color: displayData.buttonTextColor ?? "#ffffff",
               }}
             >
-              <span className="truncate">{displayData.buttonLabel}</span>
+              <span className="truncate">
+                {selfServeHouseAd ? t("partnerOrders.createMyAd") : displayData.buttonLabel}
+              </span>
               {earnLook && <PartnerClickRewardPill points={data.clickRewardPoints!} size="sm" />}
             </a>
           )}
@@ -832,10 +847,13 @@ export function PartnerCard({
             <PartnerClickRewardHint points={data.clickRewardPoints!} className="mt-3 opacity-90" />
           )}
           <a
-            href={displayData.buttonUrl}
-            target="_blank"
+            href={selfServeHouseAd ? "/partner/new" : displayData.buttonUrl}
+            target={selfServeHouseAd ? undefined : "_blank"}
             rel="noopener noreferrer"
-            onClick={() => handleCtaClick(cardSpot)}
+            onClick={() => {
+              if (selfServeHouseAd) trackPartnerOrderEvent(SELF_SERVE_PARTNER_EVENTS.ctaClick);
+              handleCtaClick(cardSpot);
+            }}
             // Full width of whatever column it is in, on the stage as much as
             // in the sidebar. The "Resgatar" button below is an outline sitting
             // under this solid one and reads as part of the same offer, which
@@ -862,7 +880,9 @@ export function PartnerCard({
                   <span className="shrink-0 tabular-nums">{data.clickRewardPoints}</span>
                 </>
               )}
-              <span className="truncate">{displayData.buttonLabel}</span>
+              <span className="truncate">
+                {selfServeHouseAd ? t("partnerOrders.createMyAd") : displayData.buttonLabel}
+              </span>
               {earnLook && <PartnerClickRewardPill points={data.clickRewardPoints!} />}
             </span>
             {clickRewardJustClaimed && (

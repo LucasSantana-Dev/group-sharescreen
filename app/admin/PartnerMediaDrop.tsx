@@ -13,6 +13,8 @@ const ACCEPT = {
 } as const;
 
 const MAX_MB = { image: 20, video: 500 } as const;
+// The API's ADVERTISER_VIDEO_MAX_MB (uploadRoutes.ts).
+const ADVERTISER_MAX_MB = { image: 20, video: 200 } as const;
 
 /**
  * Drag a file here, or click "Procurar", and it goes to the CDN (see
@@ -23,12 +25,16 @@ export function PartnerMediaDrop({
   kind,
   onUploaded,
   compact = false,
+  advertiser = false,
 }: {
   kind: "image" | "video";
   onUploaded: (url: string) => void;
   /** One line, for the smaller spots (the description's pictures). */
   compact?: boolean;
+  /** The self-serve dashboard: uploads as the signed-in advertiser, not as an admin. */
+  advertiser?: boolean;
 }) {
+  const maxMb = (advertiser ? ADVERTISER_MAX_MB : MAX_MB)[kind];
   const t = useT();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -47,15 +53,20 @@ export function PartnerMediaDrop({
       setError(kind === "image" ? t("admin.partnerMediaDrop.notAnImage") : t("admin.partnerMediaDrop.notAVideo"));
       return;
     }
-    if (file.size > MAX_MB[kind] * 1024 * 1024) {
-      setError(t("admin.partnerMediaDrop.tooLarge", { mb: MAX_MB[kind] }));
+    if (file.size > maxMb * 1024 * 1024) {
+      setError(t("admin.partnerMediaDrop.tooLarge", { mb: maxMb }));
       return;
     }
     const controller = new AbortController();
     abortRef.current = controller;
     setProgress(0);
     try {
-      const url = await uploadPartnerMedia(file, setProgress, controller.signal);
+      const url = await uploadPartnerMedia(
+        file,
+        setProgress,
+        controller.signal,
+        advertiser ? "/partner-orders/upload" : undefined
+      );
       onUploaded(url);
     } catch (err) {
       if ((err as Error)?.name !== "AbortError") {
