@@ -257,7 +257,8 @@ export type RoomPermissionKey =
   | "gif"
   | "image"
   | "theme"
-  | "tools";
+  | "tools"
+  | "music";
 
 export type RoomPermissions = Record<RoomPermissionKey, boolean>;
 
@@ -273,8 +274,8 @@ export const DEFAULT_ROOM_PERMISSIONS: RoomPermissions = {
   gif: true,
   image: true,
   theme: true,
-  // Off out of the box, like the server's: only managers open/close tools.
-  tools: false,
+  tools: true,
+  music: true,
 };
 
 /**

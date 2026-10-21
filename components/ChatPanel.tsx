@@ -1696,7 +1696,7 @@ export function ChatPanel({
               onInput={handleInput}
               onPaste={handlePaste}
               onFocus={emoji.prefetch}
-              maxLength={500}
+              maxLength={6000}
               rows={1}
               disabled={Boolean(sendDisabledReason) || sendingImages}
               placeholder={

@@ -217,7 +217,7 @@ const NEAR_TOP_PX = 80;
 const COMPOSER_MAX_HEIGHT_PX = 144;
 /** How long after the last keystroke the search is sent. */
 const SEARCH_DEBOUNCE_MS = 300;
-const MAX_LENGTH = 2000;
+const MAX_LENGTH = 6000;
 // How long a call line that still says "em chamada" is believed. It is closed
 // by the call's room emptying out (see the API's callMessages' finishCallRoom),
 // so the only way one stays open is a room that was never cleaned up — and a

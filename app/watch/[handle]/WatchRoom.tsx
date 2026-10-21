@@ -1513,6 +1513,10 @@ function RoomMusicBar({
   const music = useSignalingSelector(selectMusic);
   if (!music) return null;
   const isMusicOwner = selfUserId !== null && music.addedById === selfUserId;
+  // Whoever put it on steers it like a manager — the room's "music" switch can
+  // let a member start it, and they have to be able to stop it (the server's
+  // isMusicController).
+  const isMusicController = isRoomManager || isMusicOwner;
   return (
     <MusicBar
       // A group room's bar goes to the strip under the group's header and
@@ -1526,8 +1530,8 @@ function RoomMusicBar({
       // account check that gates *setting* it — this is playback, and a
       // room's owner may well be a guest. Mirrors the server's rule in
       // "music-state" exactly.
-      canControl={isRoomManager || music.controlMode === "anyone"}
-      isRoomManager={isRoomManager}
+      canControl={isMusicController || music.controlMode === "anyone"}
+      isRoomManager={isMusicController}
       isMusicOwner={isMusicOwner}
       selfUserId={selfUserId}
       // Se quem pôs a música saiu, ninguém estava reancorando a posição
@@ -1658,7 +1662,7 @@ function WatchRoomView({
   // The room stripped down to the call itself. See the `dm` prop.
   const callLayout = Boolean(dm);
   const state = useSignalingSelector(selectWatchRoom, shallow);
-  const { hasMusic, musicPlaying } = useSignalingSelector(selectMusicSummary, shallow);
+  const { hasMusic, musicPlaying, musicAddedById } = useSignalingSelector(selectMusicSummary, shallow);
   // The room's tools and raised hands (see lib/roomTools).
   const toolSpeakers = useRoomToolsSelector(selectToolSpeakers);
   const toolHands = useRoomToolsSelector(selectToolHands);
@@ -3177,7 +3181,10 @@ function WatchRoomView({
   const myPermissions = state.myRoomPermissions;
   function canUseRoomPermission(key: RoomPermissionKey): boolean {
     if (key === "mic" && selfIsSpeaker) return true;
-    const own = key !== "theme" && key !== "tools" && myPermissions ? myPermissions[key] : state.roomPermissions[key];
+    const own =
+      key !== "theme" && key !== "tools" && key !== "music" && myPermissions
+        ? myPermissions[key]
+        : state.roomPermissions[key];
     return own || isRoomManager;
   }
   // Repainting the room is two questions at once, and they are kept apart
@@ -4652,10 +4659,11 @@ function WatchRoomView({
   const myMusicSlot = localMusicSlots[0] ?? null;
 
   // Putting music on the room (see components/MusicBar). Two gates, both
-  // re-checked server-side: a room manager, since this is one shared output
-  // for everybody rather than something each participant brings; and a real
-  // account, since a guest identity lasts as long as a browser profile does
-  // and the room's soundtrack should not sit behind one.
+  // re-checked server-side (see its musicSetRefusal): the room's "music"
+  // switch — on by default, off keeps it to the managers — and, for a member,
+  // nobody else's music already playing; and a real account, since a guest
+  // identity lasts as long as a browser profile does and the room's
+  // soundtrack should not sit behind one.
   //
   // The account read here is `state.account` — the one this *socket* is
   // registered as — rather than the auth context's, because that is precisely
@@ -4709,12 +4717,16 @@ function WatchRoomView({
     switchToNextCamera();
   }
 
-  const canManageMusic = isRoomManager && Boolean(state.account);
-  const musicBlockedReason = !isRoomManager
+  const musicTakenByOther =
+    !isRoomManager && hasMusic && musicAddedById !== null && musicAddedById !== state.selfUserId;
+  const musicBlockedReason = !canUseRoomPermission("music")
     ? translate("watch.watchRoom.onlyTheRoomSOwnerAnd")
-    : !state.account
-      ? translate("watch.watchRoom.useAnAccountToPlayMusic")
-      : null;
+    : musicTakenByOther
+      ? translate("watch.watchRoom.someoneElseSMusicIsPlaying")
+      : !state.account
+        ? translate("watch.watchRoom.useAnAccountToPlayMusic")
+        : null;
+  const canManageMusic = musicBlockedReason === null;
 
   function startLocalMediaShare(slot: LocalMediaSlot) {
     // The picker has already put the new queue into this slot. When the slot

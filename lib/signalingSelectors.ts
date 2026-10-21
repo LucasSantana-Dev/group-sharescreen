@@ -135,6 +135,7 @@ export const selectStreamViewer = pickFields(["deviceConflict", "joinError", "jo
 export const selectMusicSummary = (s: SignalingState) => ({
   hasMusic: s.music !== null,
   musicPlaying: s.music?.playing ?? false,
+  musicAddedById: s.music?.addedById ?? null,
 });
 
 // What useRoomSoundEffects reads, for the component that runs it.

@@ -198,7 +198,7 @@ export interface ComposerHandle {
   cancelEdit(messageId?: string): void;
 }
 
-const MAX_LENGTH = 2000;
+const MAX_LENGTH = 6000;
 
 const NO_CANDIDATES: MentionCandidate[] = [];
 const NO_ROLES: ComposerRole[] = [];

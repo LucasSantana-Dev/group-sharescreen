@@ -17,6 +17,7 @@ import {
   MdGif,
   MdOutlineImage,
   MdBuild,
+  MdMusicNote,
   MdPalette,
   MdOutlineMap,
   MdLockOutline,
@@ -74,6 +75,7 @@ const PERMISSION_ROWS: {
   // did.
   { key: "theme", get label() { return translate("manageRoomModal.allowProMaxMembersToChange"); }, icon: MdPalette },
   { key: "tools", get label() { return translate("manageRoomModal.allowEveryoneToOpenTools"); }, icon: MdBuild },
+  { key: "music", get label() { return translate("manageRoomModal.allowEveryoneToPlayMusic"); }, icon: MdMusicNote },
 ];
 
 type View = "menu" | "admins" | "permissions" | "location" | "bans" | "limit" | "protection";
