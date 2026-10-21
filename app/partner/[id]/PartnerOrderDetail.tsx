@@ -181,7 +181,7 @@ export function PartnerOrderDetail({ id }: { id: string }) {
     current.status === "approved" ? t("partnerOrders.detail.sendEdit") : current.status === "rejected" ? t("partnerOrders.detail.resubmit") : t("common.saveChanges");
 
   return (
-    <main className="mx-auto w-full max-w-5xl grow px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-7xl grow px-4 py-6 sm:px-6">
       <Link
         href="/partner"
         className="flex w-fit items-center gap-1 text-sm text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -245,7 +245,9 @@ export function PartnerOrderDetail({ id }: { id: string }) {
         )}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      {/* Two halves: what to do (or the editor) on the left, the previews on
+          the right at their real size; the live report runs full width below. */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="min-w-0 flex flex-col gap-4">
           {editing && draft ? (
             <>
@@ -356,12 +358,7 @@ export function PartnerOrderDetail({ id }: { id: string }) {
                 </section>
               )}
 
-              {/* The full live report, the same one the public link opens. */}
-              {current.reportToken ? (
-                <section className="-mx-4 sm:-mx-6">
-                  <PartnerReportClient token={current.reportToken} />
-                </section>
-              ) : (
+              {!current.reportToken && (
                 <p className="rounded-xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                   {t("partnerOrders.detail.statsLater")}
                 </p>
@@ -384,6 +381,13 @@ export function PartnerOrderDetail({ id }: { id: string }) {
           <PartnerDiscordBanner source="detail" stacked />
         </aside>
       </div>
+
+      {/* The full live report, the same one the public link opens. */}
+      {!editing && current.reportToken && (
+        <section className="-mx-4 mt-6 sm:-mx-6">
+          <PartnerReportClient token={current.reportToken} />
+        </section>
+      )}
     </main>
   );
 }

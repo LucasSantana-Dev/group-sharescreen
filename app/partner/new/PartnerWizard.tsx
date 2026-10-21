@@ -203,7 +203,7 @@ export function PartnerWizard() {
   if (!loading && !account) return <PartnerSignInGate />;
 
   return (
-    <main className="mx-auto w-full max-w-5xl grow px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-7xl grow px-4 py-6 sm:px-6">
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/partner"
@@ -247,7 +247,9 @@ export function PartnerWizard() {
         })}
       </ol>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      {/* Two halves: the settings on the left, the previews on the right —
+          wide enough for the horizontal card at its real size. */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="min-w-0">
           {stepKey === "plan" && (
             <div className="flex flex-col gap-5">
@@ -346,9 +348,9 @@ export function PartnerWizard() {
 
         {/* Always in view: the card being built, and the way to a human. */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
-          {/* Not beside the very first screen when that is the price — there
+          {/* Not beside the price when that is the very first screen — there
               is no card yet. Creative-first reaches the price with one. */}
-          {step > 0 && <PartnerPreviewPanel creative={creative} />}
+          {!(stepKey === "plan" && step === 0) && <PartnerPreviewPanel creative={creative} />}
           {pkg && (
             <div className="rounded-xl border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("partnerOrders.wizard.summaryDuration")}</p>

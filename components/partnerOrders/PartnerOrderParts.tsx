@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FaDiscord } from "react-icons/fa";
 import { MdOutlineAdsClick, MdOutlinePeopleAlt, MdOutlineRemoveRedEye, MdCheck } from "react-icons/md";
 import useNtPopups from "ntpopups";
@@ -226,59 +225,16 @@ export function PartnerPreviewPanel({ creative }: { creative: PartnerCreative })
       {shapes.map(({ horizontal, label }) => (
         <div key={label}>
           <p className="mb-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
-          <FitWidth width={horizontal ? HORIZONTAL_PREVIEW_PX : null}>
-            <CustomizerPreview
-              creative={card}
-              horizontal={horizontal}
-              rewardPoints={rewardPoints}
-              rewardDuration={rewardDuration}
-              onRewardClick={openRewardPreview}
-              clickPoints={clickPoints}
-            />
-          </FitWidth>
+          <CustomizerPreview
+            creative={card}
+            horizontal={horizontal}
+            rewardPoints={rewardPoints}
+            rewardDuration={rewardDuration}
+            onRewardClick={openRewardPreview}
+            clickPoints={clickPoints}
+          />
         </div>
       ))}
-    </div>
-  );
-}
-
-// How wide the horizontal card is drawn before being scaled to fit: about the
-// width it gets in a room's stage, so its banner/text split looks like there.
-const HORIZONTAL_PREVIEW_PX = 576;
-
-/**
- * Draws its child `width` pixels wide and scales it down to the space it
- * actually has — so a wide layout previewed in a narrow sidebar looks like
- * itself, smaller, instead of being cut off. `null` = no scaling.
- */
-function FitWidth({ width, children }: { width: number | null; children: ReactNode }) {
-  const outerRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  const [height, setHeight] = useState<number | null>(null);
-
-  useEffect(() => {
-    const outer = outerRef.current;
-    const inner = innerRef.current;
-    if (!width || !outer || !inner) return;
-    const measure = () => {
-      const next = Math.min(1, outer.clientWidth / width);
-      setScale(next);
-      setHeight(inner.offsetHeight * next);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(outer);
-    observer.observe(inner);
-    return () => observer.disconnect();
-  }, [width]);
-
-  if (!width) return <>{children}</>;
-  return (
-    <div ref={outerRef} className="w-full overflow-hidden" style={{ height: height ?? undefined }}>
-      <div ref={innerRef} style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
-        {children}
-      </div>
     </div>
   );
 }

@@ -168,7 +168,8 @@ function ReviewCard({ order, onDone }: { order: AdminPartnerOrder; onDone: (o: A
         </span>
       </div>
 
-      <div className={`mt-3 grid gap-4 ${isEdit ? "md:grid-cols-2" : "md:grid-cols-[18rem_1fr]"}`}>
+      {/* One column: each preview carries the horizontal card at its real width. */}
+      <div className="mt-3 grid gap-4">
         {isEdit && (
           <div>
             <p className="mb-1 text-[11px] font-semibold uppercase text-zinc-500">{t("admin.partnerOrders.current")}</p>
