@@ -6,6 +6,7 @@ import { PixIcon } from "@/components/icons";
 import { PixChargeModal } from "@/components/PixChargeModal";
 import type { PixCharge } from "@/lib/premiumApi";
 import { useT } from "@/lib/useI18n";
+import { useAuth } from "@/lib/AuthContext";
 import {
   PartnerOrderError,
   SELF_SERVE_PARTNER_EVENTS,
@@ -38,6 +39,7 @@ export function PartnerCheckout({
   onPaid: (order: PartnerOrder) => void;
 }) {
   const t = useT();
+  const { account } = useAuth();
   const [method, setMethod] = useState<"pix" | "card">(methods.pix ? "pix" : "card");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +136,8 @@ export function PartnerCheckout({
       </div>
       {method === "card" && <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("partnerOrders.checkout.cardHint")}</p>}
 
-      {needsEmail && (
+      {/* Only without an account: a signed-in buyer pays with the account's own address. */}
+      {needsEmail && !account && (
         <div>
           <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300" htmlFor="po-email">
             {t("partnerOrders.checkout.email")}
