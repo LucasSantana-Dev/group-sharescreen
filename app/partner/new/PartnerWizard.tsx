@@ -32,11 +32,25 @@ import {
   type PartnerOrderConfig,
 } from "@/lib/partnerOrders";
 
-// "Criar anúncio", in four steps: how long, the card, the extras, pay. The
+// "Criar anúncio", in four steps: how long, the card, the extras, pay (in the
+// order the experiment's variant picks — see STEP_ORDERS). The
 // draft is kept in this browser while it is being written, so a closed tab or
 // a trip to the bank app does not lose it.
 
 const DRAFT_KEY = "golive:partner-order-draft";
+
+type StepKey = "plan" | "card" | "extras" | "pay";
+
+/**
+ * The experiment's variant that builds the card before showing the price. Any
+ * other variant (and the default "on") keeps the price first. Payment is
+ * always last.
+ */
+const CREATIVE_FIRST_VARIANT = "creative-first";
+const STEP_ORDERS: Record<"planFirst" | "creativeFirst", StepKey[]> = {
+  planFirst: ["plan", "card", "extras", "pay"],
+  creativeFirst: ["card", "extras", "plan", "pay"],
+};
 
 type Draft = { packageId: string | null; creative: PartnerCreative; orderId: string | null };
 
@@ -67,7 +81,11 @@ export function PartnerWizard() {
   const { account, loading } = useAuth();
   // Counted here: the builder and the dashboard are where the experiment's
   // feature actually is (see SELF_SERVE_PARTNER_FEATURE).
-  useFeature(SELF_SERVE_PARTNER_FEATURE, { track: true });
+  //
+  // Its variant is also the order of the steps (see STEP_ORDERS): whether the
+  // price comes first or only once the advertiser has built their card.
+  const { variant } = useFeature(SELF_SERVE_PARTNER_FEATURE, { track: true });
+  const stepOrder = variant === CREATIVE_FIRST_VARIANT ? STEP_ORDERS.creativeFirst : STEP_ORDERS.planFirst;
   const [config, setConfig] = useState<PartnerOrderConfig | null>(null);
   const [step, setStep] = useState(0);
   const [packageId, setPackageId] = useState<string | null>(null);
@@ -76,12 +94,15 @@ export function PartnerWizard() {
   const [problem, setProblem] = useState<string | null>(null);
   const restored = useRef(false);
 
-  const steps = [
-    t("partnerOrders.wizard.stepPlan"),
-    t("partnerOrders.wizard.stepCard"),
-    t("partnerOrders.wizard.stepExtras"),
-    t("partnerOrders.wizard.stepPay"),
-  ];
+  const stepLabels: Record<StepKey, string> = {
+    plan: t("partnerOrders.wizard.stepPlan"),
+    card: t("partnerOrders.wizard.stepCard"),
+    extras: t("partnerOrders.wizard.stepExtras"),
+    pay: t("partnerOrders.wizard.stepPay"),
+  };
+  const steps = stepOrder.map((key) => stepLabels[key]);
+  const stepKey = stepOrder[step];
+  const lastStep = stepOrder.length - 1;
 
   useEffect(() => {
     fetchPartnerOrderConfig()
@@ -133,14 +154,17 @@ export function PartnerWizard() {
   }, [packageId, creative, order]);
 
   useEffect(() => {
-    trackPartnerOrderEvent(`${SELF_SERVE_PARTNER_EVENTS.wizardStep}_${step + 1}`);
-  }, [step]);
+    // By name, not position: the two orders put each step in a different
+    // place, and the funnel is compared step by step.
+    trackPartnerOrderEvent(`${SELF_SERVE_PARTNER_EVENTS.wizardStep}_${stepKey}`);
+  }, [stepKey]);
 
   const pkg = config?.packages.find((p) => p.id === packageId) ?? null;
 
   function canLeave(from: number): string | null {
-    if (from === 0 && !pkg) return t("partnerOrders.wizard.choosePlan");
-    if (from >= 1) return creativeProblem(creative, t);
+    const key = stepOrder[from];
+    if (key === "plan") return pkg ? null : t("partnerOrders.wizard.choosePlan");
+    if (key === "card" || key === "extras") return creativeProblem(creative, t);
     return null;
   }
 
@@ -225,7 +249,7 @@ export function PartnerWizard() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          {step === 0 && (
+          {stepKey === "plan" && (
             <div className="flex flex-col gap-5">
               <section>
                 <h2 className="mb-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
@@ -241,9 +265,9 @@ export function PartnerWizard() {
               <PartnerAudienceStats />
             </div>
           )}
-          {step === 1 && <PartnerCreativeForm section="card" value={creative} onChange={setCreative} />}
-          {step === 2 && <PartnerCreativeForm section="extras" value={creative} onChange={setCreative} />}
-          {step === 3 && (
+          {stepKey === "card" && <PartnerCreativeForm section="card" value={creative} onChange={setCreative} />}
+          {stepKey === "extras" && <PartnerCreativeForm section="extras" value={creative} onChange={setCreative} />}
+          {stepKey === "pay" && (
             <div className="flex flex-col gap-4">
               <section className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                 <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{t("partnerOrders.wizard.reviewTitle")}</h2>
@@ -287,7 +311,7 @@ export function PartnerWizard() {
 
           {problem && <p className="mt-4 text-sm font-medium text-red-500">{problem}</p>}
 
-          {step < 3 && (
+          {step < lastStep && (
             <div className="mt-6 flex items-center justify-between gap-3">
               <button
                 type="button"
@@ -303,15 +327,15 @@ export function PartnerWizard() {
                 onClick={() => go(step + 1)}
                 className="flex items-center gap-1 rounded-xl bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
               >
-                {step === 2 ? t("partnerOrders.wizard.toPayment") : t("partnerOrders.wizard.next")}
+                {step === lastStep - 1 ? t("partnerOrders.wizard.toPayment") : t("partnerOrders.wizard.next")}
                 <MdArrowForward className="h-4 w-4" />
               </button>
             </div>
           )}
-          {step === 3 && (
+          {step === lastStep && (
             <button
               type="button"
-              onClick={() => go(2)}
+              onClick={() => go(lastStep - 1)}
               className="mt-4 flex items-center gap-1 text-sm font-semibold text-zinc-600 dark:text-zinc-300"
             >
               <MdArrowBack className="h-4 w-4" />
@@ -322,6 +346,8 @@ export function PartnerWizard() {
 
         {/* Always in view: the card being built, and the way to a human. */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
+          {/* Not beside the very first screen when that is the price — there
+              is no card yet. Creative-first reaches the price with one. */}
           {step > 0 && <PartnerPreviewPanel creative={creative} />}
           {pkg && (
             <div className="rounded-xl border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">
