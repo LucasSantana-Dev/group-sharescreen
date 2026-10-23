@@ -16,8 +16,10 @@ import { app, screen, type DesktopCapturerSource, type WebContents } from "elect
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { isWedgedEncoderStall } from "../lib/encoderStall";
 import { NativeFrameReader } from "../lib/nativeVideoFrames";
 import { IPC, type NativeVideoStartOptions, type NativeVideoStartResult } from "./channels";
+import { hardwareEncoderWedged, rememberHardwareEncoderWedged } from "./encoderHealth";
 import { getHiddenWindowSettings } from "./videoSettings";
 
 const HELPER = "golive-videocap.exe";
@@ -66,7 +68,9 @@ let probe: Promise<NativeVideoProbe> | null = null;
 export function probeNativeVideo(): Promise<NativeVideoProbe> {
   if (probe) return probe;
   probe = new Promise<NativeVideoProbe>((resolve) => {
-    if (!isNativeVideoAvailable()) {
+    // An encoder already seen accepting frames and never answering would only
+    // stall the next share for the length of FIRST_FRAME_TIMEOUT_MS.
+    if (!isNativeVideoAvailable() || hardwareEncoderWedged()) {
       resolve({ supported: false, encoder: null });
       return;
     }
@@ -255,6 +259,7 @@ export async function startNativeVideo(
           );
           timer.unref?.();
         } else if (line) {
+          if (isWedgedEncoderStall(line)) rememberHardwareEncoderWedged();
           diagnostics.push(line.slice(0, 200));
           if (diagnostics.length > 6) diagnostics.shift();
           process.stderr.write(`[videocap] ${line}\n`);

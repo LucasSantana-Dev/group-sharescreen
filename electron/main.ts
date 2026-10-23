@@ -85,6 +85,7 @@ import {
   saveSystemAudioSettings,
 } from "./audioSettings";
 import { getHiddenWindowSettings, saveHiddenWindowSettings } from "./videoSettings";
+import { hardwareEncoderWedged } from "./encoderHealth";
 import {
   applySystemAudioSettings,
   isSystemAudioCapturing,
@@ -141,6 +142,13 @@ if (MAC_LOOPBACK_SUPPORTED) {
     "enable-features",
     "MacLoopbackAudioForScreenShare,MacSckSystemAudioLoopbackOverride"
   );
+}
+
+// A hardware H.264 encoder seen wedging on an earlier run (see
+// encoderHealth.ts) would hang the window the next time a share is stopped.
+// Must be set before the app is ready, like the switches above.
+if (process.platform === "win32" && hardwareEncoderWedged()) {
+  app.commandLine.appendSwitch("disable-accelerated-video-encode");
 }
 
 /** Whether a share on this machine can carry system audio at all. */
