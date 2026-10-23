@@ -30,6 +30,7 @@ import {
 import { applyVideoCodecPreferences } from "./videoCodecPreferences";
 import { connectionRegistry } from "./connectionRegistry";
 import { tierSpec, type QualityTier } from "./videoQuality";
+import { releasePeerConnection } from "./memoryGuard";
 
 // On by default — but the planner (see useMeshTopology's
 // CASCADE_ROOM_SIZE_THRESHOLD) never actually builds a relay assignment for a
@@ -418,7 +419,7 @@ export class RelayLink {
     // Straight to close, without closeChild's "stop" signal: telling the child
     // to give up is the opposite of what it just asked us for.
     if (existing.connectTimer) clearTimeout(existing.connectTimer);
-    existing.pc.close();
+    releasePeerConnection(existing.pc);
     this.children.delete(peerId);
     connectionRegistry.unregister(existing.pc);
     this.quality.remove(peerId);
@@ -463,7 +464,7 @@ export class RelayLink {
     const entry = this.children.get(peerId);
     if (!entry) return;
     if (entry.connectTimer) clearTimeout(entry.connectTimer);
-    entry.pc.close();
+    releasePeerConnection(entry.pc);
     this.children.delete(peerId);
     connectionRegistry.unregister(entry.pc);
     this.quality.remove(peerId);

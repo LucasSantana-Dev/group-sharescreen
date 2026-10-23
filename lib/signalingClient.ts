@@ -2878,6 +2878,14 @@ class SignalingClient {
    */
   watchPresence(ids: string[]) {
     this.watchedPresenceIds = ids;
+    const keep = new Set(ids);
+    const nextPresence: typeof this.state.presence = {};
+    let pruned = false;
+    for (const [id, entry] of Object.entries(this.state.presence)) {
+      if (keep.has(id)) nextPresence[id] = entry;
+      else pruned = true;
+    }
+    if (pruned) this.setState({ presence: nextPresence, presenceSeq: this.state.presenceSeq + 1 });
     this.rawSend({ type: "presence-watch", ids });
   }
 

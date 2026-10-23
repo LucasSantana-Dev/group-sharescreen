@@ -601,7 +601,7 @@ class SenderSink {
       codedHeight: 16,
       timestamp: this.timestamp,
     });
-    void this.writer.write(frame).catch(() => {});
+    void this.writer.write(frame).then(() => frame.close(), () => frame.close());
     if (this.stallTimer) clearTimeout(this.stallTimer);
     this.stallTimer = setTimeout(() => {
       // The encoder dropped what it was given; whatever was in flight is lost.
@@ -767,9 +767,11 @@ class Preview {
     this.writer.write(frame).then(
       () => {
         this.writing = false;
+        frame.close();
       },
       () => {
         this.writing = false;
+        frame.close();
       }
     );
   }

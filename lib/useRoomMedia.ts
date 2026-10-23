@@ -116,6 +116,12 @@ import { getDesktopBridge } from "./desktop";
 import { trackFeatureEvent, useFeature } from "./features";
 import { GPU_SURVEY_FEATURE, noteGpuShareStarted } from "./gpuShareSurvey";
 import { setStreamPerfEnabled, STREAM_PERF_EVENTS, STREAM_PERF_FEATURE } from "./streamPerf";
+import {
+  MEMORY_GUARD_FEATURE,
+  releasePeerConnection,
+  sampleHeapMemory,
+  setMemoryGuardEnabled,
+} from "./memoryGuard";
 import { SCREEN_CODEC_EVENTS, SCREEN_CODEC_FEATURE, setScreenCodecVariant } from "./screenCodec";
 import { isHardwareImplementation } from "./connectionDiagnostics";
 import {
@@ -1066,6 +1072,7 @@ function useBroadcastChannel(
   // Per-peer "I asked for a reconnect and am holding this pc open for the
   // answer" timers — see recoverRecvPC.
   const recvRecoveryTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const recvTurnCleanups = useRef<Map<string, () => void>>(new Map());
   // Per-peer handle onto the ICE restart of their live sendPC (see
   // openSendPC's restartSendIce, which owns the connection this closes over).
   // Exposed here so the "reconnect-request" handler can reach it too: that is
@@ -1327,7 +1334,7 @@ function useBroadcastChannel(
   const closeSendPC = useCallback((peerId: string) => {
     const pc = sendPCs.current.get(peerId);
     if (pc) {
-      pc.close();
+      releasePeerConnection(pc);
       sendPCs.current.delete(peerId);
       if (channel !== "mic") connectionRegistry.unregister(pc);
     }
@@ -1351,11 +1358,15 @@ function useBroadcastChannel(
     // has to be told which of the two just happened to us. Defaulted to the
     // ending case, which is what every other caller means.
     (peerId: string, reparenting = false) => {
+      const turnCleanup = recvTurnCleanups.current.get(peerId);
+      recvTurnCleanups.current.delete(peerId);
       const pc = recvPCs.current.get(peerId);
       if (pc) {
-        pc.close();
+        releasePeerConnection(pc, [turnCleanup]);
         recvPCs.current.delete(peerId);
         if (channel !== "mic") connectionRegistry.unregister(pc);
+      } else {
+        turnCleanup?.();
       }
       pendingRecvCandidates.current.delete(peerId);
       const recovery = recvRecoveryTimers.current.get(peerId);
@@ -2119,7 +2130,7 @@ function useBroadcastChannel(
     sendRetryAttempts.current.clear();
     for (const [peerId, pc] of sendPCs.current) {
       signalingClient.sendSignal(peerId, { channel, role: "broadcaster", kind: "stop" });
-      pc.close();
+      releasePeerConnection(pc);
       if (channel !== "mic") connectionRegistry.unregister(pc);
     }
     sendPCs.current.clear();
@@ -2405,8 +2416,8 @@ function useBroadcastChannel(
         // Our end relaying through TURN is invisible to whoever sends to
         // us, and they are the one who decides what is encoded — so say so.
         // To the peer sending (a relay, for relayed traffic), not the origin.
-        // No cleanup needed: see watchTurnRelay.
-        watchTurnRelay(pc, (via, provider) => {
+        recvTurnCleanups.current.get(peerId)?.();
+        const unwatchTurn = watchTurnRelay(pc, (via, provider) => {
           signalingClient.sendSignal(peerId, {
             channel,
             role: "viewer",
@@ -2415,6 +2426,7 @@ function useBroadcastChannel(
             turnProvider: provider,
           });
         });
+        recvTurnCleanups.current.set(peerId, unwatchTurn);
       }
       setRecvConnectionStates((prev) => ({ ...prev, [originId]: pc.connectionState }));
       // Never connected in time without TURN: the "Pro relays" notice (see
@@ -3063,6 +3075,7 @@ function useBroadcastChannel(
 
   useEffect(() => {
     const pcs = recvPCs.current;
+    const turnCleanups = recvTurnCleanups.current;
     const pausedPeers = viewerPausedPeers.current;
     const recoveryTimers = recvRecoveryTimers.current;
     const watchdogs = resumeWatchdogs.current;
@@ -3088,11 +3101,19 @@ function useBroadcastChannel(
       // that no longer exists and send a "resume" into it.
       for (const timer of watchdogs.values()) clearTimeout(timer);
       watchdogs.clear();
-      for (const pc of pcs.values()) {
-        pc.close();
+      for (const [peerId, pc] of pcs.entries()) {
+        releasePeerConnection(pc, [turnCleanups.get(peerId)]);
         if (channel !== "mic") connectionRegistry.unregister(pc);
       }
+      turnCleanups.clear();
+      if (channel !== "mic") {
+        for (const peerId of pcs.keys()) qualityNegotiator.forget(channel as QualityChannel, peerId);
+      }
       pcs.clear();
+      recvOrigins.current.clear();
+      relaySources.current.clear();
+      pendingRecvCandidates.current.clear();
+      pendingSendCandidates.current.clear();
       setRemoteStreams({});
       setStoppedPeers(new Set());
       setResumingPeers(new Set());
@@ -4619,6 +4640,28 @@ export function useRoomMedia(room: string) {
       releaseMicGraph();
     };
   }, [releaseMicGraph]);
+
+  // Experiment "memory-guard" (see lib/memoryGuard): RAM leak prevention and
+  // aggressive WebRTC/media cleanup in both the browser and desktop app.
+  // Tracked as an exposure once the user is in an active call/stream (sharing,
+  // receiving video/mic, or in a room with peers).
+  const inActiveCall =
+    sharingAnything ||
+    mic.active ||
+    Object.keys(screen.remoteStreams).length > 0 ||
+    Object.keys(camera.remoteStreams).length > 0 ||
+    Object.keys(mic.remoteStreams).length > 0;
+  const memoryGuard = useFeature(MEMORY_GUARD_FEATURE, { track: inActiveCall });
+  useEffect(() => {
+    setMemoryGuardEnabled(memoryGuard.enabled);
+  }, [memoryGuard.enabled]);
+  useEffect(() => {
+    if (!inActiveCall) return;
+    const timer = setInterval(() => {
+      sampleHeapMemory();
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [inActiveCall]);
 
   const toggleMic = useCallback(() => {
     const next = !mic.active;
