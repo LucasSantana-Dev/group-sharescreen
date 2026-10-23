@@ -44,6 +44,7 @@ import { turnProvider } from "./iceConfig";
 import { trackFeatureEvent } from "./features";
 import { defaultShareProfile, getScreenCodecVariant, isH264Hardware, SCREEN_CODEC_FEATURE } from "./screenCodec";
 import { getOwnTurnVariant, OWN_TURN_EVENTS, OWN_TURN_FEATURE } from "./ownTurn";
+import { isMemoryGuardEnabled, MEMORY_GUARD_FEATURE } from "./memoryGuard";
 
 const ENABLED = process.env.NEXT_PUBLIC_QUALITY_TELEMETRY_ENABLED !== "false";
 
@@ -118,6 +119,7 @@ function experimentsTag(): string | null {
   if (codec) parts.push(`${SCREEN_CODEC_FEATURE}=${codec}`);
   const turn = getOwnTurnVariant();
   if (turn) parts.push(`${OWN_TURN_FEATURE}=${turn}`);
+  if (isMemoryGuardEnabled()) parts.push(`${MEMORY_GUARD_FEATURE}=on`);
   return parts.length > 0 ? parts.join(";") : null;
 }
 

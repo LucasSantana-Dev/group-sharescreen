@@ -44,6 +44,7 @@ import { MdOutlineChat, MdPauseCircleOutline } from "react-icons/md";
 import { RecordingModal, formatDuration } from "@/components/RecordingModal";
 import { markFeatureUsed } from "@/components/NewBadge";
 import { ClipBuffer, TileRecorder, clipSupported, CLIP_MS } from "@/lib/clipBuffer";
+import { noteTileBufferReleased } from "@/lib/memoryGuard";
 import {
   TILE_EXPERIMENT_EVENTS,
   setTileExperimentMode,
@@ -587,7 +588,11 @@ const VideoTileView = memo(function VideoTileView({
     // saving. A muted element has no audio to lose either way.
     const carriesAudio = !video.muted && stream !== null && stream.getAudioTracks().length > 0;
     const release = detachWhenHidden && !visible && !carriesAudio;
+    if (release) noteTileBufferReleased();
     video.srcObject = release ? null : stream;
+    return () => {
+      video.srcObject = null;
+    };
   }, [stream, visible, detachWhenHidden]);
 
   const visibilityCallbackRef = useRef(onVisibilityChange);
