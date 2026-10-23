@@ -131,6 +131,12 @@ export interface GroupChannel {
    */
   topic?: string;
   /**
+   * How many people a voice room takes at once — 0 or absent for no limit.
+   * Enforced by the API's join; whoever may move members gets in anyway. See
+   * lib/groupVoiceLimit.
+   */
+  userLimit?: number;
+  /**
    * Whether the two fields below came from this room's category rather than
    * from the room itself.
    *
@@ -741,6 +747,13 @@ export const MAX_CHANNEL_TOPIC = 300;
 /** The line beside a text room's name. "" clears it. */
 export const setChannelTopic = (groupId: string, channelId: string, topic: string) =>
   request<{ channel: GroupChannel }>("PATCH", `/groups/${enc(groupId)}/channels/${enc(channelId)}`, { topic });
+
+/** Mirrors the API's MAX_CHANNEL_USER_LIMIT. */
+export const MAX_CHANNEL_USER_LIMIT = 99;
+
+/** A voice room's "Limite de participantes". 0 clears it. */
+export const setChannelUserLimit = (groupId: string, channelId: string, userLimit: number) =>
+  request<{ channel: GroupChannel }>("PATCH", `/groups/${enc(groupId)}/channels/${enc(channelId)}`, { userLimit });
 
 /**
  * Whether this room's permissions are its category's.
