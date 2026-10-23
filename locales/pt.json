@@ -3455,6 +3455,8 @@
   "videoTile.resumeBroadcast": "Retomar transmissão",
   "videoTile.resuming": "Retomando...",
   "videoTile.stopWatching": "Parar de assistir",
+  "videoTile.showChat": "Mostrar chat",
+  "videoTile.hideChat": "Esconder chat",
   "videoTile.thisBroadcast": "essa transmissão",
   "videoTile.thisBroadcastIsActiveExternally": "Esta transmissão está ativa externamente",
   "videoTile.thisBroadcastIsBeingSharedExternally": "Esta transmissão está sendo compartilhada externamente (Clique para ver/copiar o link)",

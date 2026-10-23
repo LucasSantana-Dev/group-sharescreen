@@ -2,6 +2,7 @@
 
 import {
   memo,
+  useContext,
   useEffect,
   useMemo,
   useLayoutEffect,
@@ -11,6 +12,7 @@ import {
   type ComponentProps,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   SpeakerIcon,
   SpeakerMuteIcon,
@@ -38,11 +40,17 @@ import {
   FlipVerticalIcon,
   ResetIcon,
 } from "@/components/icons";
-import { MdPauseCircleOutline } from "react-icons/md";
+import { MdOutlineChat, MdPauseCircleOutline } from "react-icons/md";
 import { RecordingModal, formatDuration } from "@/components/RecordingModal";
 import { markFeatureUsed } from "@/components/NewBadge";
 import { ClipBuffer, TileRecorder, clipSupported, CLIP_MS } from "@/lib/clipBuffer";
-import { TILE_EXPERIMENT_EVENTS, trackTileExperiment, useTileExperiment } from "@/lib/clipsMode";
+import {
+  TILE_EXPERIMENT_EVENTS,
+  setTileExperimentMode,
+  trackTileExperiment,
+  useTileExperiment,
+} from "@/lib/clipsMode";
+import { FullscreenChatSlotContext } from "@/lib/fullscreenChat";
 import { announceRecording } from "@/lib/recordingNotice";
 import { registerTileCommands } from "@/lib/tileCommands";
 import { ConnectionStatsOverlay } from "@/components/ConnectionStatsOverlay";
@@ -303,6 +311,14 @@ const VideoTileView = memo(function VideoTileView({
   const [isMuted, setIsMuted] = useState(muted);
   const [internalVolume, setInternalVolume] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // "Chat na tela cheia" (see lib/fullscreenChat). Where the room offers it,
+  // fullscreen goes to rootRef — the tile *and* a column beside it — instead
+  // of the tile alone; `wrapped` says that is the fullscreen in effect, and
+  // gives rootRef a box of its own (outside it is `display: contents`, so the
+  // grid never knows it is there).
+  const setChatSlot = useContext(FullscreenChatSlotContext);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [wrapped, setWrapped] = useState(false);
   // Hover has no equivalent on a touchscreen, so the tap-to-toggle below is
   // the only way to reveal controls once native fullscreen swallows the
   // header — defaults to hidden on entry so the video actually gets the
@@ -329,6 +345,10 @@ const VideoTileView = memo(function VideoTileView({
   const recordingMode = useTileExperiment("recording");
   // "Girar/inverter" — the panel behind the button in the corner.
   const orientationMode = useTileExperiment("orientation");
+  // Exposure counted only once the chat button is actually on screen.
+  const fullscreenChat = useTileExperiment("fullscreenChat", { track: isFullscreen && wrapped });
+  const chatButtonShown = isFullscreen && wrapped && fullscreenChat.available;
+  const chatShown = chatButtonShown && fullscreenChat.on;
   const [orientationOpen, setOrientationOpen] = useState(false);
   const localOrientation = useLocalOrientation(tileId);
   const broadcastOrientation = orientation ?? null;
@@ -597,7 +617,10 @@ const VideoTileView = memo(function VideoTileView({
     const video = videoRef.current;
 
     function onFullscreenChange() {
-      const nowFullscreen = document.fullscreenElement === containerRef.current;
+      const element = document.fullscreenElement;
+      const nowWrapped = element !== null && element === rootRef.current;
+      const nowFullscreen = nowWrapped || element === containerRef.current;
+      setWrapped(nowWrapped);
       setIsFullscreen(nowFullscreen);
       if (nowFullscreen) {
         setFullscreenControlsVisible(false);
@@ -669,18 +692,23 @@ const VideoTileView = memo(function VideoTileView({
       setFullscreenMouseActive(true);
       scheduleHide();
     }
+    function onKey(e: KeyboardEvent) {
+      // Typing in the chat beside the picture is not asking for its controls.
+      if (e.target instanceof Element && e.target.closest("[data-fullscreen-chat]")) return;
+      wake();
+    }
     function onPointer(e: PointerEvent) {
       if (e.pointerType === "mouse") wake();
     }
     scheduleHide();
     container.addEventListener("pointermove", onPointer);
     container.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", wake);
+    document.addEventListener("keydown", onKey);
     return () => {
       if (timer) clearTimeout(timer);
       container.removeEventListener("pointermove", onPointer);
       container.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", wake);
+      document.removeEventListener("keydown", onKey);
     };
   }, [isFullscreen]);
 
@@ -750,10 +778,17 @@ const VideoTileView = memo(function VideoTileView({
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
+      } else if (setChatSlot && rootRef.current) {
+        // A `display: contents` element has no box to put on screen, so it
+        // gets one first — synchronously, while the click still counts as
+        // the gesture the Fullscreen API asks for.
+        flushSync(() => setWrapped(true));
+        await rootRef.current.requestFullscreen();
       } else {
         await container.requestFullscreen();
       }
     } catch (error) {
+      setWrapped(document.fullscreenElement !== null && document.fullscreenElement === rootRef.current);
       console.error("Fullscreen error:", error);
     }
   }
@@ -897,6 +932,7 @@ const VideoTileView = memo(function VideoTileView({
     } ${mouseVisibilityClass}`;
 
   return (
+    <div ref={rootRef} className={wrapped ? "flex h-full w-full bg-black" : "contents"}>
     <div
       ref={containerRef}
       onDoubleClick={onDoubleClick}
@@ -905,14 +941,21 @@ const VideoTileView = memo(function VideoTileView({
       // of a scrollable page, and swallowing touches there would break the
       // page's own scrolling.
       style={isFullscreen ? { touchAction: "none" } : undefined}
-      className={`group relative w-full overflow-hidden rounded-xl border border-white/10 bg-black ${
-        // No min-height floor here: on a short viewport a fixed floor could
-        // force this box taller than the space main actually has, which is
-        // exactly what pushed the tile past the bottom of the screen and
-        // forced a scroll — h-full alone always stays within whatever main
-        // gives it.
-        fill ? "h-full" : "aspect-video"
-        } ${isFullscreen && !fullscreenMouseActive ? "[@media(hover:hover)]:cursor-none" : ""} ${className}`}
+      className={`group relative overflow-hidden bg-black ${
+        // Beside the chat (see rootRef) this is no longer the fullscreen
+        // element, so nothing stretches it to the screen: it takes what the
+        // chat column leaves, and none of its place in the grid comes along.
+        wrapped
+          ? "h-full min-w-0 flex-1"
+          : `w-full rounded-xl border border-white/10 ${
+              // No min-height floor here: on a short viewport a fixed floor could
+              // force this box taller than the space main actually has, which is
+              // exactly what pushed the tile past the bottom of the screen and
+              // forced a scroll — h-full alone always stays within whatever main
+              // gives it.
+              fill ? "h-full" : "aspect-video"
+            } ${className}`
+        } ${isFullscreen && !fullscreenMouseActive ? "[@media(hover:hover)]:cursor-none" : ""}`}
     >
       {beingRecorded && (
         <div className="pointer-events-none absolute inset-0 z-30 rounded-xl border border-red-500/60" />
@@ -1385,6 +1428,21 @@ const VideoTileView = memo(function VideoTileView({
             </button>
           </Tooltip>
         )}
+        {chatButtonShown && (
+          <Tooltip content={chatShown ? t("videoTile.hideChat") : t("videoTile.showChat")}>
+            <button
+              type="button"
+              onClick={() => setTileExperimentMode("fullscreenChat", !fullscreenChat.on)}
+              aria-label={chatShown ? t("videoTile.hideChat") : t("videoTile.showChat")}
+              aria-pressed={chatShown}
+              className={`rounded-full p-2 text-white active:bg-black/80 ${
+                chatShown ? "bg-emerald-600 hover:bg-emerald-700" : "bg-black/60 hover:bg-black/80"
+              }`}
+            >
+              <MdOutlineChat className="h-5 w-5" />
+            </button>
+          </Tooltip>
+        )}
         <Tooltip content={isFullscreen ? t("common.exitFullScreen") : t("common.fullScreen")}>
           <button
             type="button"
@@ -1412,6 +1470,15 @@ const VideoTileView = memo(function VideoTileView({
           </Tooltip>
         )}
       </div>
+    </div>
+    {/* The room portals its chat in here (see lib/fullscreenChat). */}
+    {chatShown && setChatSlot && (
+      <aside
+        ref={setChatSlot}
+        data-fullscreen-chat
+        className="flex h-full w-[min(380px,42%)] shrink-0 flex-col border-l border-zinc-200 bg-white p-2 dark:border-zinc-800 dark:bg-zinc-950"
+      />
+    )}
     </div>
   );
 }, (a, b) => {

@@ -243,6 +243,7 @@ import {
 } from "@/lib/useCallTranscript";
 import Tippy from "@tippyjs/react";
 import { setTileExperimentMode, useTileExperiment, useTileExperimentTip } from "@/lib/clipsMode";
+import { FullscreenChatSlotContext } from "@/lib/fullscreenChat";
 import {
   isDefaultOrientation,
   parseOrientation,
@@ -2100,6 +2101,11 @@ function WatchRoomView({
   // "Girar/inverter" (see lib/tileOrientation): the button in each tile's
   // corner. Tracked here, where its switch is, rather than in every tile.
   const orientationMode = useTileExperiment("orientation", { track: true });
+  // "Chat na tela cheia" (see lib/fullscreenChat). Exposure is counted by the
+  // tile, once its button is on screen; here it only decides whether tiles
+  // are offered the slot at all. While one is set, the chat lives there.
+  const fullscreenChatMode = useTileExperiment("fullscreenChat");
+  const [fullscreenChatSlot, setFullscreenChatSlot] = useState<HTMLElement | null>(null);
   const orientationTip = useTileExperimentTip("orientation", orientationMode.available);
   // "Transcrição" (lib/useCallTranscript): its button is in "⋯", so its tip
   // joins that menu's queue below. Exposure counted here, once per room.
@@ -7799,7 +7805,7 @@ function WatchRoomView({
         sendDisabledReason={chatBlockedReason}
         gifDisabledReason={gifBlockedReason}
         imageDisabledReason={imageBlockedReason}
-        onCollapse={isWideLayout && hasAnyMedia ? toggleRightSidebar : undefined}
+        onCollapse={!fullscreenChatSlot && isWideLayout && hasAnyMedia ? toggleRightSidebar : undefined}
         onRequestAccount={() => setAccountModal("create")}
         roomHandle={handle}
         // Fills whatever box it is given, in both layouts: its own column
@@ -7819,7 +7825,8 @@ function WatchRoomView({
   const chatSection = (
     <>
       {roomManageRow}
-      {chatPanel}
+      {/* Off to the fullscreen tile's side for now (see fullscreenChatSlot). */}
+      {fullscreenChatSlot ? null : chatPanel}
       <RoomAccountCard
         onCreateAccount={() => setAccountModal("create")}
         onOpenProfile={setProfileUserId}
@@ -7978,6 +7985,8 @@ function WatchRoomView({
 
   return (
     <RoomToolsViewer.Provider value={toolsViewer}>
+    <FullscreenChatSlotContext.Provider value={fullscreenChatMode.available ? setFullscreenChatSlot : null}>
+    {fullscreenChatSlot && createPortal(chatPanel, fullscreenChatSlot)}
     <div
       // Marks this page as an app shell for globals.css, which is what pins
       // it to the viewport actually on screen below lg — see the
@@ -9258,7 +9267,9 @@ function WatchRoomView({
                     {participantsSection}
                   </div>
                 ) : (
-                  <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">{chatPanel}</div>
+                  <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
+                    {fullscreenChatSlot ? null : chatPanel}
+                  </div>
                 )}
               </section>
             )}
@@ -9932,6 +9943,7 @@ function WatchRoomView({
         </>
       )}
     </div>
+    </FullscreenChatSlotContext.Provider>
     </RoomToolsViewer.Provider>
   );
 }

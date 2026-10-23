@@ -25,7 +25,8 @@ export type TileExperiment =
   | "callTranscript"
   | "roomTools"
   | "vscodeEditor"
-  | "univerSheet";
+  | "univerSheet"
+  | "fullscreenChat";
 
 // `defaultOn`: the switch starts on for whoever never touched it.
 const CONFIG: Record<
@@ -122,6 +123,15 @@ const CONFIG: Record<
     modeKey: "sharescreen:univerSheetMode",
     tipKey: "sharescreen:univerSheetTipSeen",
   },
+  // "Chat na tela cheia" (ver lib/fullscreenChat): o chat da sala numa coluna
+  // à direita de um tile em tela cheia. Sem interruptor no "⋯": o botão de
+  // chat que aparece na própria tela cheia é o interruptor, desligado por
+  // padrão — com ele aberto o vídeo perde a faixa da direita.
+  fullscreenChat: {
+    feature: "fullscreen-chat",
+    modeKey: "sharescreen:fullscreenChatMode",
+    tipKey: "sharescreen:fullscreenChatTipSeen",
+  },
   musicQueue: {
     feature: "room-music-queue",
     modeKey: "sharescreen:musicQueueMode",
@@ -189,6 +199,10 @@ export const TILE_EXPERIMENT_EVENTS = {
   univerSheet: {
     modeOn: "univer_sheet_on",
     modeOff: "univer_sheet_off",
+  },
+  fullscreenChat: {
+    modeOn: "fullscreen_chat_on",
+    modeOff: "fullscreen_chat_off",
   },
   musicQueue: {
     // Nomes de "modo" aqui são a aba, não a ordem aleatória: o interruptor

@@ -3455,6 +3455,8 @@
   "videoTile.resumeBroadcast": "Resume broadcast",
   "videoTile.resuming": "Resuming...",
   "videoTile.stopWatching": "Stop watching",
+  "videoTile.showChat": "Show chat",
+  "videoTile.hideChat": "Hide chat",
   "videoTile.thisBroadcast": "this broadcast",
   "videoTile.thisBroadcastIsActiveExternally": "This broadcast is active externally",
   "videoTile.thisBroadcastIsBeingSharedExternally": "This broadcast is being shared externally (Click to see/copy the link)",
